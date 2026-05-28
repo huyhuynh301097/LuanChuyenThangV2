@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direct Transit Operational Dashboard (Dự án Luân Chuyển Thẳng)</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Load Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="header-title-section">
+      <h1>DỰ ÁN LUÂN CHUYỂN THẲNG</h1>
+      <div class="header-subtitle">Hệ thống phân tích vận hành, dự báo luồng tuyến và lập kế hoạch sản lượng đầu lấy</div>
+    </div>
+    
+    <!-- Sync Button -->
+    <button id="syncBtn" class="sync-button">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+      </svg>
+      <span id="syncBtnText">Đồng bộ Live Sheets</span>
+    </button>
+  </header>
+
+  <!-- Filter Controls -->
+  <section class="card filter-panel">
+    <div class="filter-group">
+      <label for="monthFilter">Tháng hoạt động</label>
+      <select id="monthFilter" class="filter-control">
+        <option value="ALL">Tất cả các tháng</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="regionFilter">Vùng lấy hàng</label>
+      <select id="regionFilter" class="filter-control">
+        <option value="ALL">Tất cả các vùng</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="provinceFilter">Tỉnh lấy hàng</label>
+      <select id="provinceFilter" class="filter-control">
+        <option value="ALL">Tất cả các tỉnh</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="routeSearch">Tìm kiếm tuyến</label>
+      <input type="text" id="routeSearch" class="filter-control" placeholder="Nhập tên tuyến cần lọc...">
+    </div>
+  </section>
+
+  <!-- KPI Cards Container -->
+  <section class="kpi-container" id="kpiContainer">
+    <!-- Total Volume -->
+    <div class="card kpi-card primary">
+      <div class="kpi-header">
+        <div class="kpi-title">Tổng sản lượng đơn (Vol)</div>
+        <div class="kpi-icon">📦</div>
+      </div>
+      <div class="kpi-value" id="kpiVol">-</div>
+      <div class="kpi-trend" id="kpiVolTrend">-</div>
+    </div>
+    
+    <!-- OPR % -->
+    <div class="card kpi-card success">
+      <div class="kpi-header">
+        <div class="kpi-title">Tỷ lệ xử lý (OPR)</div>
+        <div class="kpi-icon">⚡</div>
+      </div>
+      <div class="kpi-value" id="kpiOpr">-</div>
+      <div class="kpi-trend" id="kpiOprTrend">-</div>
+    </div>
+    
+    <!-- Rớt Luân Chuyển % -->
+    <div class="card kpi-card danger">
+      <div class="kpi-header">
+        <div class="kpi-title">Rớt luân chuyển (LC)</div>
+        <div class="kpi-icon">⚠️</div>
+      </div>
+      <div class="kpi-value" id="kpiRotLc">-</div>
+      <div class="kpi-trend" id="kpiRotLcTrend">-</div>
+    </div>
+    
+    <!-- ODR % -->
+    <div class="card kpi-card success">
+      <div class="kpi-header">
+        <div class="kpi-title">Giao đúng hạn (ODR)</div>
+        <div class="kpi-icon">⏰</div>
+      </div>
+      <div class="kpi-value" id="kpiOdr">-</div>
+      <div class="kpi-trend" id="kpiOdrTrend">-</div>
+    </div>
+    
+    <!-- Leadtime -->
+    <div class="card kpi-card warning">
+      <div class="kpi-header">
+        <div class="kpi-title">Leadtime trung bình</div>
+        <div class="kpi-icon">⏱️</div>
+      </div>
+      <div class="kpi-value" id="kpiLeadtime">-</div>
+      <div class="kpi-trend" id="kpiLeadtimeTrend">-</div>
+    </div>
+  </section>
+
+  <!-- Midsection: Focus Scoring Rank & Visual Chart Trends -->
+  <section class="grid-layout">
+    
+    <!-- Focus Analysis Panel -->
+    <div class="card chart-card">
+      <div class="section-header">
+        <h2 class="section-title">Khu vực cần tập trung triển khai (Focus Priority)</h2>
+        <span class="section-action" id="focusScoreFormula">Score = Vol * Rớt LC * (1 - ODR)</span>
+      </div>
+      
+      <!-- Toggle Rank Types -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <button id="btnFocusProvince" class="page-btn page-active" style="width: auto; padding: 0 16px; font-size: 0.8rem; height: 28px;">Theo Tỉnh lấy</button>
+        <button id="btnFocusRoute" class="page-btn" style="width: auto; padding: 0 16px; font-size: 0.8rem; height: 28px;">Theo Tuyến tệ nhất</button>
+        <button id="btnOpportunity" class="page-btn" style="width: auto; padding: 0 16px; font-size: 0.8rem; height: 28px;">Thiếu sản lượng (Xin đối tác)</button>
+      </div>
+      
+      <!-- Ranking List -->
+      <div class="rank-list" id="rankList">
+        <div class="empty-state">Đang tải dữ liệu...</div>
+      </div>
+    </div>
+    
+    <!-- Chart Visualizer Panel -->
+    <div class="card chart-card">
+      <div class="section-header">
+        <h2 class="section-title">Biểu đồ xu hướng vận hành (Operational Trends)</h2>
+        <select id="chartTypeToggle" class="filter-control" style="padding: 4px 10px; font-size: 0.8rem; width: auto;">
+          <option value="kpi">Các chỉ số OPR, ODR & Rớt LC</option>
+          <option value="leadtime">Leadtime tổng quan (Giờ)</option>
+        </select>
+      </div>
+      <div class="chart-container">
+        <canvas id="trendsChart"></canvas>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- Main Mapped Route Grid -->
+  <section class="card table-card">
+    <div class="section-header">
+      <h2 class="section-title">Bảng phân tích luồng tuyến chi tiết (Mapped Routes operational DB)</h2>
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <span style="font-size: 0.8rem; color: hsl(var(--text-secondary));">Xem leadtime mapped tự động theo tuyến & tháng</span>
+        <button id="btnDownloadCSV" class="page-btn" style="width: auto; padding: 0 12px; height: 28px; font-size: 0.75rem;">Xuất CSV</button>
+      </div>
+    </div>
+    
+    <!-- Data Grid wrapper -->
+    <div class="table-wrapper">
+      <table class="data-table" id="dataTable">
+        <thead>
+          <tr>
+            <th data-col="thang">Tháng</th>
+            <th data-col="vung_lay">Vùng lấy</th>
+            <th data-col="tuyen">Tuyến lấy - giao</th>
+            <th data-col="vol">Sản lượng (Vol)</th>
+            <th data-col="pct_opr">OPR %</th>
+            <th data-col="pct_rot_lc">Rớt LC %</th>
+            <th data-col="pct_odr">ODR %</th>
+            <th data-col="pct_longtail">Longtail %</th>
+            <th data-col="lt_tong">Leadtime (Giờ)</th>
+            <th data-col="pct_1ktc">1 KTC %</th>
+            <th data-col="pct_2ktc">2 KTC %</th>
+          </tr>
+        </thead>
+        <tbody id="dataTableBody">
+          <!-- Populated dynamically via app.js -->
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination controls -->
+    <div class="table-footer">
+      <div class="table-info" id="tableInfo">Hiển thị 0 - 0 trong tổng số 0 dòng</div>
+      <div class="pagination-controls" id="paginationControls">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Google Sheets Sync overlay/modal -->
+  <div class="sync-overlay" id="syncOverlay">
+    <div class="card sync-modal">
+      <div class="spinner-large"></div>
+      <h3 id="syncStatusTitle">Đang đồng bộ dữ liệu</h3>
+      <p id="syncStatusSub">Kết nối tới Google Sheets API để tải dữ liệu luân chuyển thẳng mới nhất...</p>
+      <div class="sync-progress-bar-bg">
+        <div class="sync-progress-bar-fill" id="syncProgressFill"></div>
+      </div>
+      <div class="sync-status-details" id="syncProgressText">Đang khởi tạo: 0%</div>
+    </div>
+  </div>
+
+  <!-- Import core dashboard controller script -->
+  <script src="app.js"></script>
+</body>
+</html>
