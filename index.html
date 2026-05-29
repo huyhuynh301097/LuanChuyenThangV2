@@ -27,43 +27,17 @@
     <!-- MAIN APP LAYOUT -->
     <div class="app-layout">
         
-        <!-- SIDEBAR -->
-        <aside class="app-sidebar glass-panel">
-            <div class="logo-box">
-                <i class="fa-solid fa-compass-drafting logo-icon"></i>
-                <div>
-                    <h2>GHN Focus Link</h2>
-                    <span>Control Center v6.3</span>
-                </div>
-            </div>
-            
-            <div class="sidebar-controls">
-                <div class="sidebar-item">
-                    <label for="filter-month"><i class="fa-solid fa-calendar-days"></i> Tháng Đối Soát</label>
-                    <select id="filter-month" onchange="onMonthChange()">
-                        <!-- Dynamic -->
-                    </select>
-                </div>
-            </div>
 
-            <div class="sidebar-info">
-                <p><i class="fa-solid fa-circle-info text-blue"></i> Nhấp chọn <strong>Tỉnh Lấy</strong> ở Bước 1 → <strong>Tuyến</strong> ở Bước 2 để tự động liên kết đối soát.</p>
-            </div>
-
-            <div class="sidebar-footer">
-                <button class="btn-sync" onclick="reloadAllData()"><i class="fa-solid fa-rotate"></i> Làm Mới Dữ Liệu</button>
-            </div>
-        </aside>
 
         <!-- MAIN DASHBOARD CONTENT -->
         <main class="dashboard-container">
             <!-- STEP 1: PROVINCE OUTLOOK -->
             <section class="step-section glass-panel" id="section-step1">
                 <div class="section-title-bar">
-                    <div class="step-badge">1</div>
+                    <div class="step-badge"><i class="fa-solid fa-map-location-dot"></i></div>
                     <div class="step-title-text">
-                        <h3>BƯỚC 1: Đối Soát Tỉnh Lấy (chi_so_tinh)</h3>
-                        <p>Đánh giá hiệu suất 63 tỉnh lấy toàn quốc</p>
+                        <h3>Hiệu suất theo tỉnh</h3>
+                        <p>Đánh giá toàn diện các chỉ số vận hành của 63 tỉnh lấy toàn quốc</p>
                     </div>
                 </div>
 
@@ -91,10 +65,10 @@
             <!-- STEP 2: ROUTE ANALYSIS -->
             <section class="step-section glass-panel disabled-step" id="section-step2">
                 <div class="section-title-bar">
-                    <div class="step-badge">2</div>
+                    <div class="step-badge"><i class="fa-solid fa-route"></i></div>
                     <div class="step-title-text">
-                        <h3>BƯỚC 2: Phân Tích Tuyến Lấy - Giao Của Tỉnh <span id="selected-prov-label" class="label-highlight">Chưa Chọn</span></h3>
-                        <p>Phân rã chi tiết % đi qua KTC và Leadtime các chặng nhỏ</p>
+                        <h3>Tuyến lấy - giao của tỉnh <span id="selected-prov-label" class="label-highlight">Chưa Chọn</span></h3>
+                        <p>Phân rã chi tiết hiệu suất vận hành, tỷ lệ qua KTC và Leadtime các chặng nhỏ</p>
                     </div>
                 </div>
 
@@ -130,8 +104,8 @@
             <!-- TREND ANALYTICS HUB -->
             <div class="trend-analytics-row glass-panel" id="section-trends">
                 <div class="trend-header">
-                    <h3><i class="fa-solid fa-chart-line text-blue"></i> TRUNG TÂM PHÂN TÍCH XU HƯỚNG 3 THÁNG LIÊN TIẾP</h3>
-                    <p>Xu hướng biến động của tuyến vận hành và hiệu suất shop được chọn đối soát.</p>
+                    <h3><i class="fa-solid fa-chart-line text-blue"></i> Xu hướng 3 tháng gần nhất</h3>
+                    <p>Biến động operational metrics của tuyến vận chuyển và shop được chọn đối soát qua các tháng.</p>
                 </div>
                 <div class="charts-container">
                     <!-- Route Trend Chart -->
@@ -154,9 +128,9 @@
             <!-- STEP 3: SHOP DEEP DIVE -->
             <section class="step-section glass-panel disabled-step" id="section-step3">
                 <div class="section-title-bar">
-                    <div class="step-badge">3</div>
+                    <div class="step-badge"><i class="fa-solid fa-store"></i></div>
                     <div class="step-title-text">
-                        <h3>BƯỚC 3: Đối Soát Shop Tại <span id="shop-prov-label" class="label-highlight">Chưa Chọn</span> Có Đơn Gửi Đến <span id="shop-dest-label" class="label-highlight">Chưa Chọn</span></h3>
+                        <h3>Shop tại tỉnh <span id="shop-prov-label" class="label-highlight">Chưa Chọn</span> có đơn gửi đến tỉnh <span id="shop-dest-label" class="label-highlight">Chưa Chọn</span></h3>
                         <p>Danh sách shop sản lượng lớn gửi hàng đi tỉnh giao top. Nhấp chọn 1 shop bất kỳ để xem trend hiệu suất chi tiết phía trên.</p>
                     </div>
                 </div>
@@ -197,10 +171,10 @@
             <!-- STEP 4: TRUCK CONSOLIDATION PLAN -->
             <section class="step-section glass-panel disabled-step" id="section-step4">
                 <div class="section-title-bar">
-                    <div class="step-badge">4</div>
+                    <div class="step-badge"><i class="fa-solid fa-dolly"></i></div>
                     <div class="step-title-text">
-                        <h3>BƯỚC 4: Lập Phương Án Gom Ghép Xe Tải Luân Chuyển Thẳng Của Tỉnh <span id="consolidate-prov-label" class="label-highlight">Chưa Chọn</span></h3>
-                        <p>Tính toán gom nhóm shop tự động tối ưu hóa logistics theo 2 mô hình luân chuyển</p>
+                        <h3>Phương án gom ghép xe tải luân chuyển của tỉnh <span id="consolidate-prov-label" class="label-highlight">Chưa Chọn</span></h3>
+                        <p>Lập phương án gom nhóm shop tự động tối ưu hóa logistics theo 2 mô hình luân chuyển đầu lấy & đầu giao</p>
                     </div>
                 </div>
 
@@ -248,8 +222,8 @@
                                 <thead>
                                     <tr>
                                         <th>Tên Doanh Nghiệp (Shop)</th>
-                                        <th>Vol TB/Ngày</th>
-                                        <th>KL TB/Ngày</th>
+                                        <th>Vol TB/Ngày (Tỉnh Giao Top)</th>
+                                        <th>KL đi Tỉnh Top (Kg/ngày)</th>
                                         <th>Tỉnh Giao Top</th>
                                     </tr>
                                 </thead>
@@ -304,7 +278,7 @@
                                     <tr>
                                         <th>Tên Doanh Nghiệp (Shop)</th>
                                         <th>Vol TB/Ngày</th>
-                                        <th>KL TB/Ngày</th>
+                                        <th>Tổng KL (Kg/ngày)</th>
                                         <th>Tỉnh Giao Top</th>
                                     </tr>
                                 </thead>

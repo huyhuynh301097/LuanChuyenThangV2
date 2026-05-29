@@ -176,20 +176,8 @@ function reloadAllData() {
 }
 
 function initApp() {
-    let months = [...new Set(dbData.prov.map(d => d.thang))].filter(Boolean).sort().reverse();
-    let monthSelect = document.getElementById('filter-month');
-    monthSelect.innerHTML = '';
-    months.forEach(m => {
-        monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
-    });
-
-    selectedMonth = monthSelect.value;
-    resetSelections();
-    renderStep1();
-}
-
-function onMonthChange() {
-    selectedMonth = document.getElementById('filter-month').value;
+    let months = [...new Set(dbData.prov.map(d => d.thang))].filter(Boolean).sort();
+    selectedMonth = months.length > 0 ? months[months.length - 1] : "2026-05";
     resetSelections();
     renderStep1();
 }
@@ -208,17 +196,17 @@ function resetSelections() {
     document.getElementById('trend-route-label').innerText = "Chưa Chọn";
     document.getElementById('trend-shop-label').innerText = "Chưa Chọn";
 
-    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="16" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
-    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="20" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="16" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở bảng Hiệu suất theo tỉnh để hiển thị tuyến kết nối.</td></tr>`;
+    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="20" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở bảng Tuyến lấy - giao để đối soát danh sách shop.</td></tr>`;
     
     // Reset Step 4
     document.getElementById('section-step4').classList.add('disabled-step');
     document.getElementById('consolidate-prov-label').innerText = "Chưa Chọn";
     document.getElementById('ktc-giao-name').innerText = "Chưa Chọn";
     document.getElementById('ktc-lay-name').innerText = "Chưa Chọn";
-    document.getElementById('8t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>`;
-    document.getElementById('19t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>`;
-    document.getElementById('8t-total-kl').innerText = "0 Kg";
+    document.getElementById('8t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
+    document.getElementById('19t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
+    document.getElementById('8t-total-kl').innerText = "0 Kg/ngày";
     document.getElementById('8t-fill-pct').innerText = "0%";
     document.getElementById('8t-status').innerText = "Chưa Đủ Tải";
     document.getElementById('8t-status').className = "badge-standard";
@@ -226,7 +214,7 @@ function resetSelections() {
     document.getElementById('8t-progress-text').innerText = "0 / 8,000 Kg";
     document.getElementById('8t-progress-bar').style.width = "0%";
 
-    document.getElementById('19t-total-kl').innerText = "0 Kg";
+    document.getElementById('19t-total-kl').innerText = "0 Kg/ngày";
     document.getElementById('19t-fill-pct').innerText = "0%";
     document.getElementById('19t-status').innerText = "Chưa Đủ Tải";
     document.getElementById('19t-status').className = "badge-standard";
@@ -498,29 +486,34 @@ function selectShopRow(rowElement, shopName, odr, opr) {
 }
 
 function buildTrendChart(routeName) {
-    let marData = dbData.route.find(r => r.thang === "2026-03" && r.tuyen === routeName);
-    let aprData = dbData.route.find(r => r.thang === "2026-04" && r.tuyen === routeName);
-    let mayData = dbData.route.find(r => r.thang === "2026-05" && r.tuyen === routeName);
+    let months = ["2026-03", "2026-04", "2026-05"];
+    
+    let odrs = [];
+    let longtails = [];
+    let leadtimes = [];
+    let pct1ktc = [];
+    let pct2ktc = [];
+    let pct3ktc = [];
+    let vols = [];
+    let weights = [];
 
-    let marLt = dbData.lt.find(l => l.thang === "2026-03" && l.tuyen === routeName);
-    let aprLt = dbData.lt.find(l => l.thang === "2026-04" && l.tuyen === routeName);
-    let mayLt = dbData.lt.find(l => l.thang === "2026-05" && l.tuyen === routeName);
+    months.forEach(m => {
+        let marData = dbData.route.find(r => r.thang === m && r.tuyen === routeName);
+        let marLt = dbData.lt.find(l => l.thang === m && l.tuyen === routeName);
 
-    let odrs = [
-        marData ? getFloatVal(marData.pct_odr) : 0,
-        aprData ? getFloatVal(aprData.pct_odr) : 0,
-        mayData ? getFloatVal(mayData.pct_odr) : 0
-    ];
-    let leadtimes = [
-        marLt ? parseFloat(marLt.lt_tong) : (marData ? parseFloat(marData.Leadtine) : 0),
-        aprLt ? parseFloat(aprLt.lt_tong) : (aprData ? parseFloat(aprData.Leadtine) : 0),
-        mayLt ? parseFloat(mayLt.lt_tong) : (mayData ? parseFloat(mayData.Leadtine) : 0)
-    ];
-    let longtails = [
-        marData ? getFloatVal(marData.pct_longtail) : 0,
-        aprData ? getFloatVal(aprData.pct_longtail) : 0,
-        mayData ? getFloatVal(mayData.pct_longtail) : 0
-    ];
+        odrs.push(marData ? getFloatVal(marData.pct_odr) : 0);
+        longtails.push(marData ? getFloatVal(marData.pct_longtail) : 0);
+        
+        let ltTong = marLt ? parseFloat(marLt.lt_tong) : (marData ? parseFloat(marData.Leadtine) : 0);
+        leadtimes.push(isNaN(ltTong) ? 0 : ltTong);
+
+        pct1ktc.push(marLt ? getFloatVal(marLt.pct_1ktc) : 0);
+        pct2ktc.push(marLt ? getFloatVal(marLt.pct_2ktc) : 0);
+        pct3ktc.push(marLt ? getFloatVal(marLt.pct_3ktc) : 0);
+
+        vols.push(marData ? getFloatVal(marData.vol) : 0);
+        weights.push(marData ? getFloatVal(marData.kl) : 0);
+    });
 
     const ctx = document.getElementById('routeTrendChart').getContext('2d');
     
@@ -537,9 +530,9 @@ function buildTrendChart(routeName) {
                     label: 'ODR (%)',
                     data: odrs,
                     borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-                    yAxisID: 'y1',
-                    tension: 0.3,
+                    backgroundColor: 'rgba(16, 185, 129, 0.02)',
+                    yAxisID: 'y',
+                    tension: 0.25,
                     borderWidth: 3,
                     pointRadius: 5
                 },
@@ -547,30 +540,89 @@ function buildTrendChart(routeName) {
                     label: 'Longtail (%)',
                     data: longtails,
                     borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.03)',
-                    yAxisID: 'y1',
-                    tension: 0.3,
-                    borderWidth: 2,
+                    backgroundColor: 'rgba(239, 68, 68, 0.02)',
+                    yAxisID: 'y',
+                    tension: 0.25,
+                    borderWidth: 2.5,
                     borderDash: [5, 5],
                     pointRadius: 4
+                },
+                {
+                    label: '%1KTC',
+                    data: pct1ktc,
+                    borderColor: '#f97316',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
+                },
+                {
+                    label: '%2KTC',
+                    data: pct2ktc,
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
+                },
+                {
+                    label: '%3KTC',
+                    data: pct3ktc,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
                 },
                 {
                     label: 'Leadtime (h)',
                     data: leadtimes,
                     borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.03)',
-                    yAxisID: 'y2',
-                    tension: 0.3,
+                    backgroundColor: 'rgba(37, 99, 235, 0.02)',
+                    yAxisID: 'yLeadtime',
+                    tension: 0.25,
                     borderWidth: 3,
                     pointRadius: 5
+                },
+                {
+                    label: 'Volume (đơn)',
+                    data: vols,
+                    borderColor: '#64748b',
+                    backgroundColor: 'rgba(100, 116, 139, 0.02)',
+                    yAxisID: 'yQty',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
+                },
+                {
+                    label: 'Khối lượng (Kg)',
+                    data: weights,
+                    borderColor: '#b45309',
+                    backgroundColor: 'rgba(180, 83, 9, 0.02)',
+                    yAxisID: 'yQty',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             scales: {
-                y1: {
+                y: {
                     type: 'linear',
                     position: 'left',
                     min: 0,
@@ -579,9 +631,10 @@ function buildTrendChart(routeName) {
                         color: '#475569',
                         callback: function(value) { return value + "%"; }
                     },
-                    grid: { color: 'rgba(0, 0, 0, 0.04)' }
+                    grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                    title: { display: true, text: 'Tỷ lệ (%)', font: { size: 10, weight: '600' } }
                 },
-                y2: {
+                yLeadtime: {
                     type: 'linear',
                     position: 'right',
                     min: 0,
@@ -589,7 +642,19 @@ function buildTrendChart(routeName) {
                         color: '#475569',
                         callback: function(value) { return value + "h"; }
                     },
-                    grid: { drawOnChartArea: false }
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Leadtime (giờ)', font: { size: 10, weight: '600' } }
+                },
+                yQty: {
+                    type: 'linear',
+                    position: 'right',
+                    min: 0,
+                    ticks: {
+                        color: '#475569',
+                        callback: function(value) { return value.toLocaleString('vi-VN'); }
+                    },
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Sản lượng/Khối lượng', font: { size: 10, weight: '600' } }
                 },
                 x: {
                     ticks: { color: '#475569' },
@@ -601,7 +666,9 @@ function buildTrendChart(routeName) {
                     labels: { color: '#0f172a', font: { size: 10, weight: '500' } }
                 },
                 datalabels: {
-                    display: true,
+                    display: function(context) {
+                        return context.datasetIndex === 0 || context.datasetIndex === 1 || context.datasetIndex === 5;
+                    },
                     align: 'top',
                     anchor: 'end',
                     font: {
@@ -617,7 +684,7 @@ function buildTrendChart(routeName) {
                         if (label.includes('%') || label.includes('ODR') || label.includes('Longtail')) {
                             return parseFloat(value).toFixed(1) + "%";
                         }
-                        if (label.includes('Leadtime') || label.includes('(h)')) {
+                        if (label.includes('Leadtime')) {
                             return parseFloat(value).toFixed(1) + "h";
                         }
                         return value;
@@ -638,30 +705,53 @@ function buildShopTrendChart(shopName, odr, opr) {
     
     document.getElementById('trend-shop-label').innerText = shopName;
 
-    // Kiểm tra dữ liệu lịch sử thực tế 3 tháng của shop từ Google Sheet
     let rawShopsForName = dbData.shop.filter(x => x.ten_kh === shopName);
-    let hasMonthlyData = rawShopsForName.some(x => x.thang);
     
+    let months = ["2026-03", "2026-04", "2026-05"];
     let odrs = [];
     let oprs = [];
-    
-    if (hasMonthlyData) {
-        let months = ["2026-03", "2026-04", "2026-05"];
-        months.forEach(m => {
-            let matched = rawShopsForName.find(x => x.thang === m);
-            if (matched) {
-                odrs.push(getFloatVal(matched.pct_odr).toFixed(1));
-                oprs.push(getFloatVal(matched.pct_opr).toFixed(1));
-            } else {
-                odrs.push(odr.toFixed(1));
-                oprs.push(opr.toFixed(1));
+    let longtails = [];
+    let rotlcs = [];
+    let leadtimes = [];
+    let vols = [];
+    let weights = [];
+
+    months.forEach(m => {
+        let matched = rawShopsForName.find(x => x.thang === m);
+        if (matched) {
+            odrs.push(getFloatVal(matched.pct_odr));
+            oprs.push(getFloatVal(matched.pct_opr));
+            longtails.push(getFloatVal(matched.pct_longtail));
+            rotlcs.push(getFloatVal(matched.pct_rot_lc));
+            vols.push(getFloatVal(matched.tong_vol));
+            weights.push(getFloatVal(matched.tong_kl));
+            
+            // Tính toán leadtime shop đi top province nhận trong tháng m
+            let shopTopGiao = matched.top_tinh_giao;
+            let shopTuyen = matched.tinh_lay + " - " + shopTopGiao;
+            
+            let matchedRoute = dbData.route.find(r => r.thang === m && r.tuyen === shopTuyen);
+            let matchedLt = dbData.lt.find(l => l.thang === m && l.tuyen === shopTuyen);
+            let ltValue = matchedLt ? parseFloat(matchedLt.lt_tong) : (matchedRoute ? parseFloat(matchedRoute.Leadtine) : 0);
+            
+            if (isNaN(ltValue) || ltValue <= 0) {
+                // fallback to selected route's leadtime for that month
+                let selRouteLt = dbData.lt.find(l => l.thang === m && l.tuyen === selectedRoute);
+                let selRouteData = dbData.route.find(r => r.thang === m && r.tuyen === selectedRoute);
+                ltValue = selRouteLt ? parseFloat(selRouteLt.lt_tong) : (selRouteData ? parseFloat(selRouteData.Leadtine) : 35.0);
             }
-        });
-    } else {
-        // Fallback mô phỏng nếu không có cột thang thực tế
-        odrs = [(odr - 1.8).toFixed(1), (odr + 0.9).toFixed(1), odr.toFixed(1)];
-        oprs = [(opr - 0.8).toFixed(1), (opr + 0.4).toFixed(1), opr.toFixed(1)];
-    }
+            leadtimes.push(ltValue);
+        } else {
+            // fallback simulated if no match
+            odrs.push(odr);
+            oprs.push(opr);
+            longtails.push(12.5);
+            rotlcs.push(2.1);
+            leadtimes.push(35.0);
+            vols.push(1000);
+            weights.push(2000);
+        }
+    });
 
     shopChartInstance = new Chart(ctx, {
         type: 'line',
@@ -672,8 +762,9 @@ function buildShopTrendChart(shopName, odr, opr) {
                     label: 'Shop ODR (%)',
                     data: odrs,
                     borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-                    tension: 0.3,
+                    backgroundColor: 'rgba(16, 185, 129, 0.02)',
+                    yAxisID: 'y',
+                    tension: 0.25,
                     borderWidth: 3,
                     pointRadius: 5
                 },
@@ -681,25 +772,109 @@ function buildShopTrendChart(shopName, odr, opr) {
                     label: 'Shop OPR (%)',
                     data: oprs,
                     borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.03)',
-                    tension: 0.3,
+                    backgroundColor: 'rgba(37, 99, 235, 0.02)',
+                    yAxisID: 'y',
+                    tension: 0.25,
                     borderWidth: 3,
                     pointRadius: 5
+                },
+                {
+                    label: 'Longtail (%)',
+                    data: longtails,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
+                },
+                {
+                    label: 'Rớt LC (%)',
+                    data: rotlcs,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
+                },
+                {
+                    label: 'Leadtime (h)',
+                    data: leadtimes,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.02)',
+                    yAxisID: 'yLeadtime',
+                    tension: 0.25,
+                    borderWidth: 2.5,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Volume (đơn)',
+                    data: vols,
+                    borderColor: '#64748b',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'yQty',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
+                },
+                {
+                    label: 'Khối lượng (Kg)',
+                    data: weights,
+                    borderColor: '#b45309',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'yQty',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    hidden: true
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             scales: {
                 y: {
+                    type: 'linear',
+                    position: 'left',
                     min: 0,
                     max: 100,
                     ticks: {
                         color: '#475569',
                         callback: function(value) { return value + "%"; }
                     },
-                    grid: { color: 'rgba(0, 0, 0, 0.04)' }
+                    grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                    title: { display: true, text: 'Tỷ lệ (%)', font: { size: 10, weight: '600' } }
+                },
+                yLeadtime: {
+                    type: 'linear',
+                    position: 'right',
+                    min: 0,
+                    ticks: {
+                        color: '#475569',
+                        callback: function(value) { return value + "h"; }
+                    },
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Leadtime (giờ)', font: { size: 10, weight: '600' } }
+                },
+                yQty: {
+                    type: 'linear',
+                    position: 'right',
+                    min: 0,
+                    ticks: {
+                        color: '#475569',
+                        callback: function(value) { return value.toLocaleString('vi-VN'); }
+                    },
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Sản lượng/Khối lượng', font: { size: 10, weight: '600' } }
                 },
                 x: {
                     ticks: { color: '#475569' },
@@ -711,7 +886,9 @@ function buildShopTrendChart(shopName, odr, opr) {
                     labels: { color: '#0f172a', font: { size: 10, weight: '500' } }
                 },
                 datalabels: {
-                    display: true,
+                    display: function(context) {
+                        return context.datasetIndex === 0 || context.datasetIndex === 1 || context.datasetIndex === 4;
+                    },
                     align: 'top',
                     anchor: 'end',
                     font: {
@@ -723,7 +900,14 @@ function buildShopTrendChart(shopName, odr, opr) {
                         return context.dataset.borderColor;
                     },
                     formatter: function(value, context) {
-                        return parseFloat(value).toFixed(1) + "%";
+                        let label = context.dataset.label;
+                        if (label.includes('%') || label.includes('ODR') || label.includes('Longtail')) {
+                            return parseFloat(value).toFixed(1) + "%";
+                        }
+                        if (label.includes('Leadtime')) {
+                            return parseFloat(value).toFixed(1) + "h";
+                        }
+                        return value;
                     },
                     offset: 4
                 }
@@ -766,12 +950,21 @@ function calculateConsolidation(routeName) {
     // Gom tất cả các shop tại tỉnh lấy
     let shops19T = allShopsInProv;
     
-    // TÍNH TOÁN LUỒNG 1 (XE 8T)
+    // TÍNH TOÁN LUỒNG 1 (XE 8T) - kl_tb_ngay_top_tinh_giao
     let totalVol8T = 0;
     let totalKl8T = 0;
     shops8T.forEach(s => {
-        totalVol8T += getFloatVal(s.vol_tb_ngay);
-        totalKl8T += getFloatVal(s.kl_tb_ngay);
+        let pct = getFloatVal(s.pct_kl_top_tinh_giao);
+        if (pct <= 0) {
+            let tKl = getFloatVal(s.tong_kl);
+            let topKl = getFloatVal(s.kl_top_tinh_giao);
+            if (tKl > 0) pct = (topKl / tKl) * 100;
+        }
+        if (pct <= 0) pct = 100;
+        let volTopGiao = getFloatVal(s.vol_tb_ngay) * (pct / 100);
+        
+        totalVol8T += volTopGiao;
+        totalKl8T += getFloatVal(s.kl_tb_ngay_top_tinh_giao);
     });
     
     let fillPct8T = Math.min(100, (totalKl8T / 8000) * 100);
@@ -800,20 +993,28 @@ function calculateConsolidation(routeName) {
     if (shops8T.length === 0) {
         tbody8T.innerHTML = `<tr><td colspan="4" class="placeholder-text">Không có shop nào có cùng KTC Giao.</td></tr>`;
     } else {
-        shops8T.sort((a,b) => getFloatVal(b.kl_tb_ngay) - getFloatVal(a.kl_tb_ngay));
+        shops8T.sort((a,b) => getFloatVal(b.kl_tb_ngay_top_tinh_giao) - getFloatVal(a.kl_tb_ngay_top_tinh_giao));
         shops8T.forEach(s => {
+            let pct = getFloatVal(s.pct_kl_top_tinh_giao);
+            if (pct <= 0) {
+                let tKl = getFloatVal(s.tong_kl);
+                let topKl = getFloatVal(s.kl_top_tinh_giao);
+                if (tKl > 0) pct = (topKl / tKl) * 100;
+            }
+            if (pct <= 0) pct = 100;
+            let volTopGiao = getFloatVal(s.vol_tb_ngay) * (pct / 100);
             tbody8T.innerHTML += `
                 <tr>
                     <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
-                    <td>${formatNum(s.vol_tb_ngay)}</td>
-                    <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay)} Kg</td>
+                    <td>${formatNum(volTopGiao.toFixed(1))}</td>
+                    <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay_top_tinh_giao)} Kg</td>
                     <td>${s.top_tinh_giao}</td>
                 </tr>
             `;
         });
     }
     
-    // TÍNH TOÁN LUỒNG 2 (XE 1.9T)
+    // TÍNH TOÁN LUỒNG 2 (XE 1.9T) - kl_tb_ngay
     let totalVol19T = 0;
     let totalKl19T = 0;
     shops19T.forEach(s => {
