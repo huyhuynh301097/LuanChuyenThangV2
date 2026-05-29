@@ -528,6 +528,7 @@ body {
     flex-direction: column;
     gap: 16px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+    min-width: 0; /* Cho phép card co giãn tự động theo tỷ lệ lưới, bắt các bảng rộng cuộn ngang thay vì làm tràn card */
 }
 .consolidation-card.border-purple {
     border-left: 5px solid #a855f7;
@@ -581,6 +582,12 @@ body {
     grid-column: span 3;
 }
 .kpi-mini-box.double-width {
+    grid-column: span 2;
+}
+.kpi-minigrid.compact-grid {
+    grid-template-columns: 1fr 1fr;
+}
+.kpi-mini-box.span-2 {
     grid-column: span 2;
 }
 .kpi-mini-box span {

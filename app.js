@@ -87,8 +87,9 @@ function formatNum(val) {
 }
 
 function formatPercent(val) {
-    if (!val) return "0%";
+    if (val === undefined || val === null || val === "") return "--";
     let s = val.toString().trim();
+    if (s === "") return "--";
     if (s.includes('%')) {
         let n = parseFloat(s.replace(/%/g, ''));
         return isNaN(n) ? s : Math.round(n) + "%";
@@ -267,6 +268,7 @@ function getSortedArr(arr, key, asc) {
 }
 
 function getODRClass(val) {
+    if (val === undefined || val === null || val === "") return '';
     let p = getFloatVal(val);
     if (p < 88.0) return 'hl-cell-red';
     if (p < 92.0) return 'hl-cell-yellow';
@@ -274,6 +276,7 @@ function getODRClass(val) {
 }
 
 function getLongtailClass(val) {
+    if (val === undefined || val === null || val === "") return '';
     let p = getFloatVal(val);
     if (p > 18.0) return 'hl-cell-red';
     if (p > 15.0) return 'hl-cell-yellow';
@@ -281,6 +284,7 @@ function getLongtailClass(val) {
 }
 
 function getOPRClass(val) {
+    if (val === undefined || val === null || val === "") return '';
     let p = getFloatVal(val);
     if (p < 70.0) return 'hl-cell-red';
     if (p < 85.0) return 'hl-cell-yellow';
@@ -946,8 +950,13 @@ function calculateConsolidation(routeName) {
     // 1. Luồng 1: Gom Đầu Giao Xe 8T (Yêu cầu 8,000 Kg)
     // Gom các shop có KTC giao trùng với KTC giao của tuyến đang chọn
     let shops8T = allShopsInProv.filter(s => {
-        let shopTopRoute = selectedProv + " - " + s.top_tinh_giao;
-        let shopRouteData = dbData.route.find(r => r.thang === selectedMonth && r.tuyen === shopTopRoute);
+        let normalizedTop = normalizeProv(s.top_tinh_giao);
+        let shopRouteData = dbData.route.find(r => {
+            if (r.thang !== selectedMonth) return false;
+            let parts = r.tuyen.split(" - ");
+            if (parts.length < 2) return false;
+            return parts[0] === selectedProv && normalizeProv(parts[1]) === normalizedTop;
+        });
         let shopKtcGiao = shopRouteData ? shopRouteData["KTC/KCT giao"] : "";
         return shopKtcGiao && shopKtcGiao === ktcGiao;
     });
@@ -974,7 +983,7 @@ function calculateConsolidation(routeName) {
     });
     
     let fillPct8T = Math.min(100, (totalKl8T / 8000) * 100);
-    let status8T = totalKl8T >= 8000 ? "KHẢ THI - Đủ tải xe 8T" : `CHƯA ĐỦ TẢI (Thiếu ${(8000 - totalKl8T).toFixed(0)} Kg)`;
+    let status8T = totalKl8T >= 8000 ? "KHẢ THI (Đủ tải xe 8T)" : `CHƯA ĐỦ TẢI (-${(8000 - totalKl8T).toFixed(0)} Kg)`;
     let badgeClass8T = totalKl8T >= 8000 ? "badge-direct" : "badge-standard";
     
     // Tiết kiệm Leadtime xe 8T: Bypass KTC Lấy, tiết kiệm chặng lt_ktc1_ktc2
@@ -1057,7 +1066,7 @@ function calculateConsolidation(routeName) {
     });
     
     let fillPct19T = Math.min(100, (totalKl19T / 1900) * 100);
-    let status19T = totalKl19T >= 1900 ? "KHẢ THI - Đủ tải xe 1.9T" : `CHƯA ĐỦ TẢI (Thiếu ${(1900 - totalKl19T).toFixed(0)} Kg)`;
+    let status19T = totalKl19T >= 1900 ? "KHẢ THI (Đủ tải)" : `CHƯA ĐỦ TẢI (-${(1900 - totalKl19T).toFixed(0)} Kg)`;
     let badgeClass19T = totalKl19T >= 1900 ? "badge-direct" : "badge-standard";
     
     // Tiết kiệm Leadtime xe 1.9T: Đi thẳng trung chuyển chặng lt_xuat_bclay_nhap_ktc1
