@@ -3,147 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHN Luân Chuyển Thẳng - Dashboard</title>
+    <title>GHN Vận Hành - Cơ Sở Dữ Liệu Động</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader-box glass-panel">
+            <i class="fa-solid fa-spinner fa-spin loader-icon"></i>
+            <h2>Đang tải Cơ Sở Dữ Liệu...</h2>
+            <p id="loading-status">Đang kết nối tới Google Sheets...</p>
+            <div class="progress-bar-container">
+                <div id="loading-progress" class="progress-bar" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
         <aside class="sidebar glass-panel">
             <div class="logo">
-                <i class="fa-solid fa-truck-fast"></i>
-                <h2>GHN Direct</h2>
+                <i class="fa-solid fa-database"></i>
+                <h2>GHN Live DB</h2>
             </div>
             <nav class="menu">
-                <a href="#" class="menu-item active" data-tab="overview">
-                    <i class="fa-solid fa-chart-pie"></i> Tổng Quan
+                <a href="#" class="menu-item active" data-tab="prov-tab">
+                    <i class="fa-solid fa-map-location-dot"></i> Chỉ Số Tỉnh Lấy
                 </a>
-                <a href="#" class="menu-item" data-tab="routes">
-                    <i class="fa-solid fa-route"></i> Chỉ Số Tuyến
+                <a href="#" class="menu-item" data-tab="route-tab">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i> Chỉ Số Tuyến Giao
                 </a>
-                <a href="#" class="menu-item" data-tab="shops">
+                <a href="#" class="menu-item" data-tab="leadtime-tab">
+                    <i class="fa-solid fa-hourglass-half"></i> Chi Tiết Leadtime
+                </a>
+                <a href="#" class="menu-item" data-tab="shop-tab">
                     <i class="fa-solid fa-store"></i> Hiệu Suất Shop
                 </a>
-                <a href="#" class="menu-item" data-tab="routing">
-                    <i class="fa-solid fa-code-branch"></i> Luân Chuyển
-                </a>
             </nav>
+            <div class="db-info-panel">
+                <span class="db-title"><i class="fa-solid fa-circle-nodes"></i> Nguồn Dữ Liệu:</span>
+                <span class="db-source-name">Google Sheets Live</span>
+                <button class="btn-refresh" onclick="reloadAllData()"><i class="fa-solid fa-rotate"></i> Làm mới DB</button>
+            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Topbar -->
             <header class="topbar glass-panel">
-                <div class="search-bar">
-                    <i class="fa-solid fa-search"></i>
-                    <input type="text" placeholder="Tìm kiếm tỉnh, KTC, hoặc shop...">
+                <div class="top-title">
+                    <span>Hệ Thống Phân Tích & Đối Soát Chỉ Số Vận Hành Quốc Gia</span>
                 </div>
                 <div class="user-profile">
-                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                    <span>Admin</span>
+                    <div class="avatar"><i class="fa-solid fa-user-gear"></i></div>
+                    <span>Phân Tích Viên</span>
                 </div>
             </header>
 
-            <div class="tab-content active" id="overview">
-                <h1 class="page-title">Tổng Quan Chỉ Số</h1>
-                <div class="kpi-cards">
-                    <div class="kpi-card glass-panel">
-                        <div class="kpi-icon"><i class="fa-solid fa-box-open"></i></div>
-                        <div class="kpi-data">
-                            <h3>Tổng Sản Lượng</h3>
-                            <p class="value" id="kpi-total-volume">--</p>
-                        </div>
-                    </div>
-                    <div class="kpi-card glass-panel">
-                        <div class="kpi-icon"><i class="fa-solid fa-check-double"></i></div>
-                        <div class="kpi-data">
-                            <h3>Tỉ Lệ Thành Công</h3>
-                            <p class="value" id="kpi-success-rate">--%</p>
-                        </div>
-                    </div>
-                    <div class="kpi-card glass-panel">
-                        <div class="kpi-icon"><i class="fa-solid fa-clock"></i></div>
-                        <div class="kpi-data">
-                            <h3>Leadtime Trung Bình</h3>
-                            <p class="value" id="kpi-avg-leadtime">--h</p>
-                        </div>
-                    </div>
+            <!-- TAB 1: CHỈ SỐ TỈNH LẤY -->
+            <div class="tab-content active" id="prov-tab">
+                <div class="section-header">
+                    <h1 class="page-title">Tổng Quan Chỉ Số Tỉnh Lấy</h1>
+                    <p class="subtitle">Phân tích hiệu suất vận hành theo từng tỉnh lấy (chi_so_tinh). So sánh sản lượng, tỷ lệ OPR, ODR và hàng Longtail.</p>
                 </div>
-                <div class="charts-row">
-                    <div class="chart-container glass-panel">
-                        <h3>Sản Lượng Theo Tỉnh Lấy (Top 5)</h3>
-                        <div class="chart-placeholder" id="chart-province">Đang tải dữ liệu...</div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="tab-content" id="routes">
-                <h1 class="page-title">Chỉ Số Theo Tuyến</h1>
+                <div class="filters-panel glass-panel">
+                    <div class="filter-group">
+                        <label for="prov-search-tinh">Tìm Tỉnh Lấy:</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="prov-search-tinh" placeholder="Nhập tên tỉnh..." oninput="filterProvData()">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="prov-select-thang">Tháng:</label>
+                        <select id="prov-select-thang" onchange="filterProvData()">
+                            <option value="">-- Tất cả --</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="glass-panel table-container">
-                    <table class="data-table">
+                    <table class="data-table" id="prov-table">
                         <thead>
                             <tr>
-                                <th>Tuyến Lấy - Giao</th>
-                                <th>Sản Lượng</th>
-                                <th>Leadtime</th>
-                                <th>Trạng Thái</th>
+                                <th class="sortable" onclick="sortDB('prov', 'thang')">Tháng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'vung_lay')">Vùng Lấy <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'tinh_lay')">Tỉnh Lấy <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'kl')">Khối Lượng (Kg) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'pct_rot_lc')">% Tuyến LC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'pct_odr')">% ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('prov', 'pct_longtail')">% Longtail <i class="fa-solid fa-sort"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="routes-tbody">
-                            <tr><td colspan="4">Đang tải...</td></tr>
+                        <tbody id="prov-table-body">
+                            <!-- Dynamic -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="tab-content" id="shops">
-                <h1 class="page-title">Hiệu Suất Shop</h1>
+            <!-- TAB 2: CHỈ SỐ TUYẾN GIAO -->
+            <div class="tab-content" id="route-tab">
+                <div class="section-header">
+                    <h1 class="page-title">Chỉ Số Chi Tiết Theo Tuyến Lấy - Giao</h1>
+                    <p class="subtitle">Dữ liệu chi tiết về sản lượng, hiệu suất vận hành và Leadtime trên từng tuyến kết nối Tỉnh Lấy - Tỉnh Giao (chi_so_tuyen).</p>
+                </div>
+
+                <div class="filters-panel glass-panel">
+                    <div class="filter-group">
+                        <label for="route-search-tuyen">Tìm kiếm Tuyến:</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-route"></i>
+                            <input type="text" id="route-search-tuyen" placeholder="Ví dụ: Hà Nội - Hồ Chí Minh" oninput="filterRouteData()">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="route-select-thang">Tháng:</label>
+                        <select id="route-select-thang" onchange="filterRouteData()">
+                            <option value="">-- Tất cả --</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="route-search-ktc">KTC Lấy/Giao Phụ Trách:</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-warehouse"></i>
+                            <input type="text" id="route-search-ktc" placeholder="Nhập tên KTC..." oninput="filterRouteData()">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="glass-panel table-container">
-                    <table class="data-table">
+                    <table class="data-table" id="route-table-element">
                         <thead>
                             <tr>
-                                <th>Shop ID</th>
-                                <th>Tỉnh Lấy</th>
-                                <th>Sản Lượng</th>
-                                <th>Phân Loại</th>
+                                <th class="sortable" onclick="sortDB('route', 'thang')">Tháng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'tuyen')">Tuyến Lấy - Giao <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'kl')">Khối Lượng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'pct_odr')">% ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'Leadtine')">Leadtime <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'KTC/KCT lấy')">KTC Lấy <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('route', 'KTC/KCT giao')">KTC Giao <i class="fa-solid fa-sort"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="shops-tbody">
-                            <tr><td colspan="4">Đang tải...</td></tr>
+                        <tbody id="route-table-body">
+                            <!-- Dynamic -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="tab-content" id="routing">
-                <h1 class="page-title">Gợi Ý Luân Chuyển Thẳng</h1>
-                <div class="filters glass-panel">
-                    <select id="filter-province">
-                        <option value="">-- Chọn Tỉnh Lấy --</option>
-                    </select>
-                    <button class="btn-primary" onclick="generateRouting()">Phân Tích</button>
+            <!-- TAB 3: CHI TIẾT LEADTIME CHẶNG -->
+            <div class="tab-content" id="leadtime-tab">
+                <div class="section-header">
+                    <h1 class="page-title">Chi Tiết Cấu Trúc Leadtime Theo Chặng</h1>
+                    <p class="subtitle">Phân tích sâu cấu trúc vận chuyển: Tuyến đó đi qua mấy KTC (1 KTC, 2 KTC, 3 KTC...) và chi tiết thời gian trung chuyển ở từng chặng nhỏ.</p>
                 </div>
-                <div class="routing-results">
-                    <div class="route-card glass-panel direct-route">
-                        <h3><i class="fa-solid fa-bolt"></i> Phù Hợp Đi KTC Giao (Direct)</h3>
-                        <p>Các shop có sản lượng lớn, tập trung vào 1 tuyến.</p>
-                        <ul class="shop-list" id="direct-shops-list">
-                            <li>Chưa có dữ liệu</li>
-                        </ul>
+
+                <div class="filters-panel glass-panel">
+                    <div class="filter-group">
+                        <label for="lt-search-tuyen">Tìm Tuyến:</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="lt-search-tuyen" placeholder="Nhập tuyến..." oninput="filterLtData()">
+                        </div>
                     </div>
-                    <div class="route-card glass-panel standard-route">
-                        <h3><i class="fa-solid fa-truck"></i> Chuyển Về KTC Lấy (Standard)</h3>
-                        <p>Các shop có sản lượng phân tán hoặc thấp.</p>
-                        <ul class="shop-list" id="standard-shops-list">
-                            <li>Chưa có dữ liệu</li>
-                        </ul>
+                    <div class="filter-group">
+                        <label for="lt-select-thang">Tháng:</label>
+                        <select id="lt-select-thang" onchange="filterLtData()">
+                            <option value="">-- Tất cả --</option>
+                        </select>
                     </div>
+                </div>
+
+                <div class="glass-panel table-container">
+                    <table class="data-table" id="lt-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortDB('lt', 'thang')">Tháng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'tuyen')">Tuyến Lấy - Giao <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'so_don')">Số Đơn <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'pct_1ktc')">% 1 KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'pct_2ktc')">% 2 KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'pct_3ktc')">% 3 KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'lt_xuat_bclay_nhap_ktc1')">LT Chặng 1 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'lt_ktc1_ktc2')">LT Chặng 2 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'lt_ktc2_ktc3')">LT Chặng 3 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'lt_ktc_cuoi_nhap_bcgiao')">LT Chặng Cuối <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('lt', 'lt_tong')">Tổng LT (h) <i class="fa-solid fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lt-table-body">
+                            <!-- Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: HIỆU SUẤT SHOP -->
+            <div class="tab-content" id="shop-tab">
+                <div class="section-header">
+                    <h1 class="page-title">Báo Cáo Hiệu Suất Từng Shop</h1>
+                    <p class="subtitle">Báo cáo chi tiết hiệu suất các shop gửi hàng lượng lớn (chi_so_shop). Đối soát sản lượng, tỉ lệ ODR, và top các tỉnh giao hàng chính của họ.</p>
+                </div>
+
+                <div class="filters-panel glass-panel">
+                    <div class="filter-group">
+                        <label for="shop-search-name">Tên KH / Shop:</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-store"></i>
+                            <input type="text" id="shop-search-name" placeholder="Tìm tên shop..." oninput="filterShopData()">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="shop-select-tinh">Tỉnh Lấy:</label>
+                        <select id="shop-select-tinh" onchange="filterShopData()">
+                            <option value="">-- Tất cả các tỉnh --</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="shop-search-bc">Bưu Cục Gửi:</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <input type="text" id="shop-search-bc" placeholder="Tên bưu cục..." oninput="filterShopData()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel table-container">
+                    <table class="data-table" id="shop-table-element">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortDB('shop', 'ten_kh')">Tên Khách Hàng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'warehouse_name')">Tên Kho Gửi <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'tinh_lay')">Tỉnh Lấy <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'quan')">Quận/Huyện <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'tong_vol')">Tổng Vol <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'vol_tb_ngay')">Vol TB/Ngày <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'pct_odr')">% ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'top_tinh_giao')">Tỉnh Giao Chính <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortDB('shop', 'pct_kl_top_tinh_giao')">% KL Tỉnh Giao Top <i class="fa-solid fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="shop-table-body">
+                            <!-- Dynamic -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>
     </div>
-    
+
     <script src="app.js"></script>
 </body>
 </html>
