@@ -265,37 +265,120 @@ function initHeatmap() {
         // Sắp xếp các tỉnh theo điểm ưu tiên giảm dần
         list.sort((a, b) => b.score - a.score);
         
-        let northHtml = "";
-        let centralHtml = "";
-        let southHtml = "";
+        let allHtml = "";
         
         list.forEach(item => {
-            let regLower = (item.region || "").toString().toLowerCase();
             let chipHtml = `
                 <div class="province-chip ${item.heatClass}" id="chip-${normalizeProv(item.provName)}" onclick="selectProvinceFromHeatmap('${item.provName}')" title="Điểm ưu tiên: ${item.score}/100 | Longtail: ${formatPercent(item.longtail)} | OPR: ${formatPercent(item.opr)} | Shop lớn: ${item.numFeasibleShops}">
                     <span style="font-size:0.75rem;">${item.provName}</span>
                     <span style="font-size: 0.6rem; opacity: 0.9; font-weight: 500;">Ưu tiên: ${item.score}</span>
                 </div>
             `;
-            
-            if (regLower.includes("bắc")) {
-                northHtml += chipHtml;
-            } else if (regLower.includes("trung") || regLower.includes("tây nguyên") || regLower.includes("tâynguyên")) {
-                centralHtml += chipHtml;
-            } else {
-                southHtml += chipHtml;
-            }
+            allHtml += chipHtml;
         });
         
-        document.getElementById("north-provinces").innerHTML = northHtml || `<div class="placeholder-text">Không có dữ liệu miền Bắc</div>`;
-        document.getElementById("central-provinces").innerHTML = centralHtml || `<div class="placeholder-text">Không có dữ liệu miền Trung</div>`;
-        document.getElementById("south-provinces").innerHTML = southHtml || `<div class="placeholder-text">Không có dữ liệu miền Nam</div>`;
+        document.getElementById("all-provinces").innerHTML = allHtml || `<div class="placeholder-text">Không có dữ liệu</div>`;
     } catch (err) {
         console.error("Lỗi khi vẽ Bản đồ nhiệt (initHeatmap):", err);
         let errorPlaceholder = `<div class="placeholder-text" style="color:var(--danger-text);"><i class="fa-solid fa-circle-exclamation"></i> Lỗi xử lý dữ liệu bản đồ nhiệt.</div>`;
-        document.getElementById("north-provinces").innerHTML = errorPlaceholder;
-        document.getElementById("central-provinces").innerHTML = errorPlaceholder;
-        document.getElementById("south-provinces").innerHTML = errorPlaceholder;
+        document.getElementById("all-provinces").innerHTML = errorPlaceholder;
+    }
+}
+
+/**
+ * Tính toán số lượng shop đủ khả năng triển khai Mô hình 1 và Mô hình 2 cho tuyến chặng cụ thể
+ */
+function analyzeRouteModels(provName, routeName) {
+    try {
+        let destProv = routeName.split(" - ")[1];
+        let normalizedDest = normalizeProv(destProv);
+        
+        let currentRouteData = dbData.route.find(r => r.thang === selectedMonth && r.tuyen === routeName);
+        let ktcLay = currentRouteData ? currentRouteData["KTC/KCT lấy"] || currentRouteData["ktc_lay"] : "";
+        let ktcGiao = currentRouteData ? currentRouteData["KTC/KCT giao"] || currentRouteData["ktc_giao"] : "";
+        
+        // Lấy toàn bộ shop thuộc tỉnh lấy trong tháng được chọn
+        let allShopsInProv = dbData.shop.filter(s => {
+            let matchProv = s.tinh_lay === provName;
+            let matchMonth = s.thang ? s.thang === selectedMonth : true;
+            return matchProv && matchMonth;
+        });
+        
+        // ----------------------------------------------------
+        // MÔ HÌNH 1: LUÂN CHUYỂN THẲNG XE 8T (Capacity: 8,000 Kg)
+        // ----------------------------------------------------
+        let shops8T = allShopsInProv.filter(s => {
+            let normalizedTop = normalizeProv(s.top_tinh_giao);
+            let shopRouteData = dbData.route.find(r => {
+                if (r.thang !== selectedMonth) return false;
+                if (!r.tuyen) return false;
+                let parts = r.tuyen.split(" - ");
+                if (parts.length < 2) return false;
+                return parts[0] === provName && normalizeProv(parts[1]) === normalizedTop;
+            });
+            let shopKtcGiao = shopRouteData ? shopRouteData["KTC/KCT giao"] || shopRouteData["ktc_giao"] : "";
+            return shopKtcGiao && shopKtcGiao === ktcGiao;
+        });
+        
+        let getVolModel1 = s => {
+            let pct = getFloatVal(s.pct_kl_top_tinh_giao);
+            if (pct <= 0) {
+                let tKl = getFloatVal(s.tong_kl);
+                let topKl = getFloatVal(s.kl_top_tinh_giao);
+                if (tKl > 0) pct = (topKl / tKl) * 100;
+            }
+            if (pct <= 0) pct = 100;
+            return getFloatVal(s.vol_tb_ngay) * (pct / 100);
+        };
+        
+        let result8T = planTrucks(shops8T, 8000, "kl_tb_ngay_top_tinh_giao", getVolModel1);
+        
+        // ----------------------------------------------------
+        // MÔ HÌNH 2: LUÂN CHUYỂN THẲNG XE 1.9T (Capacity: 1,900 Kg)
+        // ----------------------------------------------------
+        let shops19TCandidates = allShopsInProv.map(s => {
+            let originalWeight = getFloatVal(s.kl_tb_ngay);
+            let originalVol = getFloatVal(s.vol_tb_ngay);
+            
+            let deployedWeight = result8T.deployedWeights[s.ten_kh] || 0;
+            let deployedVol = result8T.deployedVols[s.ten_kh] || 0;
+            
+            let availWeight = Math.max(0, originalWeight - deployedWeight);
+            let availVol = Math.max(0, originalVol - deployedVol);
+            
+            return {
+                ...s,
+                kl_tb_ngay: availWeight,
+                vol_tb_ngay: availVol
+            };
+        }).filter(s => s.kl_tb_ngay > 0);
+        
+        let getVolModel2 = s => getFloatVal(s.vol_tb_ngay);
+        let result19T = planTrucks(shops19TCandidates, 1900, "kl_tb_ngay", getVolModel2);
+        
+        // Tính số lượng shop đủ tải
+        let count8T = 0;
+        let shops8TSet = new Set();
+        result8T.trucks.forEach(t => {
+            if (t.isFeasible) {
+                t.shops.forEach(sh => shops8TSet.add(sh.ten_kh));
+            }
+        });
+        count8T = shops8TSet.size;
+        
+        let count19T = 0;
+        let shops19TSet = new Set();
+        result19T.trucks.forEach(t => {
+            if (t.isFeasible) {
+                t.shops.forEach(sh => shops19TSet.add(sh.ten_kh));
+            }
+        });
+        count19T = shops19TSet.size;
+        
+        return { count8T, count19T };
+    } catch (err) {
+        console.error("Lỗi trong analyzeRouteModels:", err);
+        return { count8T: 0, count19T: 0 };
     }
 }
 
@@ -345,6 +428,9 @@ function selectProvinceFromHeatmap(provName) {
                 totalWeightRoute += getFloatVal(s.kl_tb_ngay_top_tinh_giao);
             });
             
+            // Phân tích shop theo từng mô hình
+            let analysis = analyzeRouteModels(provName, r.tuyen);
+            
             return {
                 tuyen: r.tuyen,
                 dest: dest,
@@ -354,7 +440,9 @@ function selectProvinceFromHeatmap(provName) {
                 leadtime: leadtime,
                 bypassSaving: bypassSaving,
                 weight: totalWeightRoute,
-                shopsCount: shopsCount
+                shopsCount: shopsCount,
+                count8T: analysis.count8T,
+                count19T: analysis.count19T
             };
         });
         
@@ -362,7 +450,7 @@ function selectProvinceFromHeatmap(provName) {
         let validRoutes = routeDetails.filter(r => r.vol > 0);
         validRoutes.sort((a, b) => b.longtail - a.longtail || a.opr - b.opr);
         
-        // Lấy Top 3 tuyến
+        // Lọc lấy Top 3 tuyến
         let topRoutes = validRoutes.slice(0, 3);
         
         const sidebar = document.getElementById('heatmap-recommendation-content');
@@ -418,7 +506,7 @@ function selectProvinceFromHeatmap(provName) {
             recHtml += `
                 <div class="rec-route-card animate-fade-in" style="cursor:pointer;" onclick="selectRoute('${route.tuyen}')">
                     <div class="rec-route-header">
-                        <span class="rec-route-name"><i class="fa-solid fa-circle-arrow-right text-purple"></i> Tuyến đi: <strong>${route.dest}</strong></span>
+                        <span class="rec-route-name"><i class="fa-solid fa-circle-arrow-right text-purple"></i> Tuyến: <strong>${provName} - ${route.dest}</strong></span>
                         <span class="badge-standard" style="font-size:0.65rem; padding: 2px 6px;">Top ${route.shopsCount} shop</span>
                     </div>
                     
@@ -434,6 +522,15 @@ function selectProvinceFromHeatmap(provName) {
                         <div class="rec-metric-item">
                             <span>% OPR</span>
                             <strong class="${getOPRClass(route.opr)}">${formatPercent(route.opr)}</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="rec-route-models" style="margin-top: 8px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.72rem;">
+                        <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); padding: 6px; border-radius: 6px; text-align: center; color: #6b21a8;">
+                            <strong>Mô hình 1 (Xe 8T)</strong><br><strong style="font-size: 0.85rem; color: #a855f7;">${route.count8T}</strong> shop đủ tải
+                        </div>
+                        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 6px; border-radius: 6px; text-align: center; color: #1e3a8a;">
+                            <strong>Mô hình 2 (Xe 1.9T)</strong><br><strong style="font-size: 0.85rem; color: #3b82f6;">${route.count19T}</strong> shop đủ tải
                         </div>
                     </div>
                     
