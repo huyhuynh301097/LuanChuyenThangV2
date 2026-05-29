@@ -1,22 +1,22 @@
 :root {
-    --bg-color: #0b0f17;
-    --panel-bg: rgba(15, 23, 42, 0.75);
-    --panel-border: rgba(255, 255, 255, 0.08);
-    --text-main: #f8fafc;
+    --bg-color: #f1f5f9;
+    --panel-bg: rgba(255, 255, 255, 0.85);
+    --panel-border: rgba(0, 0, 0, 0.08);
+    --text-main: #0f172a;
     --text-muted: #64748b;
-    --accent-color: #3b82f6;
+    --accent-color: #2563eb;
     
-    --success-bg: rgba(16, 185, 129, 0.15);
-    --success-border: rgba(16, 185, 129, 0.3);
-    --success-text: #34d399;
+    --success-bg: #f0fdf4;
+    --success-border: #bbf7d0;
+    --success-text: #166534;
     
-    --warning-bg: rgba(245, 158, 11, 0.15);
-    --warning-border: rgba(245, 158, 11, 0.3);
-    --warning-text: #fbbf24;
+    --warning-bg: #fffbeb;
+    --warning-border: #fef3c7;
+    --warning-text: #9a3412;
     
-    --danger-bg: rgba(239, 68, 68, 0.18);
-    --danger-border: rgba(239, 68, 68, 0.4);
-    --danger-text: #f87171;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --danger-text: #991b1b;
 }
 
 * {
@@ -29,8 +29,8 @@
 body {
     background-color: var(--bg-color);
     background-image: 
-        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.15), transparent 45%),
-        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.1), transparent 45%);
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08), transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.06), transparent 45%);
     color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
@@ -42,6 +42,24 @@ body {
     height: 100vh;
     padding: 20px;
     gap: 20px;
+}
+
+/* Elegant Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* Header */
@@ -60,9 +78,7 @@ body {
 }
 .app-logo i {
     font-size: 2.2rem;
-    background: linear-gradient(135deg, #3b82f6, #06b6d4);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--accent-color);
 }
 .app-logo h2 {
     font-size: 1.25rem;
@@ -71,6 +87,9 @@ body {
 .app-logo span {
     font-size: 0.8rem;
     color: var(--text-muted);
+}
+.text-blue {
+    color: var(--accent-color);
 }
 
 .global-controls {
@@ -89,7 +108,7 @@ body {
     font-weight: 500;
 }
 .control-item select {
-    background: #090d16;
+    background: #ffffff;
     border: 1px solid var(--panel-border);
     color: var(--text-main);
     padding: 10px 16px;
@@ -98,12 +117,13 @@ body {
     cursor: pointer;
     font-weight: 600;
     border-color: var(--accent-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .btn-sync {
-    background: rgba(59, 130, 246, 0.15);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    color: #60a5fa;
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    color: var(--accent-color);
     padding: 10px 18px;
     border-radius: 8px;
     cursor: pointer;
@@ -117,6 +137,7 @@ body {
 .btn-sync:hover {
     background: var(--accent-color);
     color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 /* Dashboard Body */
@@ -152,7 +173,7 @@ body {
 .step-num {
     width: 38px;
     height: 38px;
-    background: linear-gradient(135deg, var(--accent-color), #06b6d4);
+    background: linear-gradient(135deg, var(--accent-color), #38bdf8);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -160,7 +181,7 @@ body {
     font-weight: 700;
     font-size: 1.1rem;
     color: white;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
 }
 .step-title-text h3 {
     font-size: 1.1rem;
@@ -192,15 +213,28 @@ body {
 .color-box.yellow { background: var(--warning-bg); border: 1px solid var(--warning-border); }
 
 .label-highlight {
-    color: #60a5fa;
+    color: var(--accent-color);
     font-weight: 700;
-    text-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+    text-shadow: 0 0 8px rgba(37, 99, 235, 0.15);
+}
+
+/* Glass panel */
+.glass-panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 /* Scroll constraints for tables */
 .table-scroll-container {
     width: 100%;
     overflow-x: auto;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: #ffffff;
 }
 .table-scroll-container.limit-prov { max-height: 280px; }
 .table-scroll-container.limit-route { max-height: 320px; }
@@ -214,7 +248,7 @@ body {
     text-align: left;
 }
 .data-table th, .data-table td {
-    padding: 12px 16px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--panel-border);
     font-size: 0.85rem;
     white-space: nowrap;
@@ -226,7 +260,7 @@ body {
     font-size: 0.72rem;
     position: sticky;
     top: 0;
-    background: #0f172a;
+    background: #f8fafc;
     z-index: 2;
 }
 .data-table th.sortable {
@@ -239,85 +273,62 @@ body {
 .data-table tr {
     cursor: pointer;
     transition: background-color 0.2s;
+    background: #ffffff;
 }
 .data-table tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: #f8fafc;
 }
 .data-table tr.selected-row {
-    background: rgba(59, 130, 246, 0.15) !important;
+    background: rgba(59, 130, 246, 0.08) !important;
 }
 
-/* === FROZEN COLUMNS STYLING === */
-/* Step 1 Sticky columns: Vùng & Tỉnh Lấy */
-#prov-table th:nth-child(1), #prov-table td:nth-child(1) {
-    position: sticky;
-    left: 0;
-    z-index: 3;
-    background: #0b0f17;
-    min-width: 80px;
-    max-width: 80px;
-}
-#prov-table th:nth-child(2), #prov-table td:nth-child(2) {
-    position: sticky;
-    left: 80px;
-    z-index: 3;
-    background: #0b0f17;
-    min-width: 140px;
-    max-width: 140px;
-    border-right: 2px solid var(--panel-border);
-}
+/* === STICKY FROZEN COLUMNS LIGHT MODE === */
+/* Step 1: Vùng & Tỉnh Lấy */
+#prov-table th:nth-child(1) { position: sticky; top: 0; left: 0; z-index: 4 !important; background: #f8fafc !important; }
+#prov-table td:nth-child(1) { position: sticky; left: 0; z-index: 3; background: #ffffff; min-width: 80px; max-width: 80px; }
 
-/* Step 2 Sticky columns: Tuyến & Sản Lượng */
-#route-table th:nth-child(1), #route-table td:nth-child(1) {
-    position: sticky;
-    left: 0;
-    z-index: 3;
-    background: #0b0f17;
-    min-width: 220px;
-    max-width: 220px;
-}
-#route-table th:nth-child(2), #route-table td:nth-child(2) {
-    position: sticky;
-    left: 220px;
-    z-index: 3;
-    background: #0b0f17;
-    min-width: 110px;
-    max-width: 110px;
-    border-right: 2px solid var(--panel-border);
-}
+#prov-table th:nth-child(2) { position: sticky; top: 0; left: 80px; z-index: 4 !important; background: #f8fafc !important; border-right: 2px solid var(--panel-border); }
+#prov-table td:nth-child(2) { position: sticky; left: 80px; z-index: 3; background: #ffffff; min-width: 140px; max-width: 140px; border-right: 2px solid var(--panel-border); }
 
-/* Step 3 Sticky columns: Tên Shop */
-#shop-table th:nth-child(1), #shop-table td:nth-child(1) {
-    position: sticky;
-    left: 0;
-    z-index: 3;
-    background: #0b0f17;
-    min-width: 260px;
-    max-width: 260px;
-    border-right: 2px solid var(--panel-border);
-}
+/* Step 2: Tuyến & Sản Lượng */
+#route-table th:nth-child(1) { position: sticky; top: 0; left: 0; z-index: 4 !important; background: #f8fafc !important; }
+#route-table td:nth-child(1) { position: sticky; left: 0; z-index: 3; background: #ffffff; min-width: 220px; max-width: 220px; }
 
-/* Highlight row colors overlap overrides for sticky */
+#route-table th:nth-child(2) { position: sticky; top: 0; left: 220px; z-index: 4 !important; background: #f8fafc !important; border-right: 2px solid var(--panel-border); }
+#route-table td:nth-child(2) { position: sticky; left: 220px; z-index: 3; background: #ffffff; min-width: 110px; max-width: 110px; border-right: 2px solid var(--panel-border); }
+
+/* Step 3: Tên Shop */
+#shop-table th:nth-child(1) { position: sticky; top: 0; left: 0; z-index: 4 !important; background: #f8fafc !important; border-right: 2px solid var(--panel-border); }
+#shop-table td:nth-child(1) { position: sticky; left: 0; z-index: 3; background: #ffffff; min-width: 260px; max-width: 260px; border-right: 2px solid var(--panel-border); }
+
+/* Overlap overrides for selected sticky rows */
 .data-table tr.selected-row td:nth-child(1),
 .data-table tr.selected-row td:nth-child(2) {
-    background: #172554 !important;
+    background: #eff6ff !important;
+}
+.data-table tr:hover td:nth-child(1),
+.data-table tr:hover td:nth-child(2) {
+    background: #f8fafc !important;
 }
 
-/* Cell warn highlightings */
+/* Warnings */
 .hl-cell-red {
     background: var(--danger-bg) !important;
     color: var(--danger-text) !important;
     font-weight: 600;
+    border: 1px solid var(--danger-border);
 }
 .hl-cell-yellow {
     background: var(--warning-bg) !important;
     color: var(--warning-text) !important;
     font-weight: 600;
+    border: 1px solid var(--warning-border);
 }
 .hl-cell-green {
     background: var(--success-bg) !important;
     color: var(--success-text) !important;
     font-weight: 600;
+    border: 1px solid var(--success-border);
 }
 
 /* Step 3 Grid Layout for Chart + Table */
@@ -328,7 +339,7 @@ body {
 }
 @media (min-width: 1024px) {
     .step3-grid {
-        grid-template-columns: 360px 1fr;
+        grid-template-columns: 380px 1fr;
     }
 }
 .trend-chart-box {
@@ -347,15 +358,8 @@ body {
 }
 .chart-wrapper {
     width: 100%;
-    height: 240px;
+    height: 280px;
     position: relative;
-}
-
-.placeholder-text {
-    text-align: center;
-    color: var(--text-muted);
-    font-style: italic;
-    padding: 24px;
 }
 
 /* Loading Overlay */
@@ -365,7 +369,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(9, 13, 22, 0.96);
+    background: rgba(241, 245, 249, 0.98);
     z-index: 9999;
     display: flex;
     align-items: center;
@@ -380,6 +384,8 @@ body {
     align-items: center;
     gap: 20px;
     width: 420px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
 }
 .loader-icon {
     font-size: 3rem;
@@ -388,14 +394,14 @@ body {
 .progress-bar-container {
     width: 100%;
     height: 6px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 3px;
     overflow: hidden;
     margin-top: 10px;
 }
 .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+    background: linear-gradient(90deg, var(--accent-color), #06b6d4);
     border-radius: 3px;
     transition: width 0.3s;
 }

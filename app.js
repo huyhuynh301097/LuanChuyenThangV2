@@ -270,8 +270,8 @@ function renderStep1() {
         tbody.innerHTML += `
             <tr class="${isSelected}" onclick="selectProvince('${d.tinh_lay}')">
                 <td>${d.vung_lay}</td>
-                <td style="font-weight: 600;">${d.tinh_lay}</td>
-                <td style="font-weight: 600; color: #60a5fa;">${formatNum(d.vol)}</td>
+                <td style="font-weight: 600; color: #0f172a;">${d.tinh_lay}</td>
+                <td style="font-weight: 600; color: var(--accent-color);">${formatNum(d.vol)}</td>
                 <td>${formatNum(d.kl)}</td>
                 <td class="${getOPRClass(d.pct_opr)}">${formatPercent(d.pct_opr)}</td>
                 <td>${formatPercent(d.pct_rot_lc)}</td>
@@ -338,12 +338,12 @@ function renderStep2() {
         let isSelected = (selectedRoute === r.tuyen) ? 'selected-row' : '';
         tbody.innerHTML += `
             <tr class="${isSelected}" onclick="selectRoute('${r.tuyen}')">
-                <td style="font-weight: 600; color: #60a5fa;"><i class="fa-solid fa-arrow-trend-up"></i> ${r.tuyen}</td>
+                <td style="font-weight: 600; color: var(--accent-color);">${r.tuyen}</td>
                 <td style="font-weight: 600;">${formatNum(r.vol)}</td>
                 <td class="${getOPRClass(r.pct_opr)}">${formatPercent(r.pct_opr)}</td>
                 <td class="${getODRClass(r.pct_odr)}">${formatPercent(r.pct_odr)}</td>
                 <td class="${getLongtailClass(r.pct_longtail)}">${formatPercent(r.pct_longtail)}</td>
-                <td style="font-weight: 700; color: #10b981;">${formatHours(r.lt_tong)}</td>
+                <td style="font-weight: 700; color: #166534;">${formatHours(r.lt_tong)}</td>
                 <td>${formatPercent(r.pct_1ktc)}</td>
                 <td>${formatPercent(r.pct_2ktc)}</td>
                 <td>${formatPercent(r.pct_3ktc)}</td>
@@ -394,7 +394,7 @@ function renderStep3() {
     sorted.forEach(s => {
         tbody.innerHTML += `
             <tr>
-                <td style="font-weight: 600; color: #f8fafc;">${s.ten_kh}</td>
+                <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
                 <td>${s.pickwarehouseid}</td>
                 <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name}</td>
                 <td>${s.vung}</td>
@@ -403,7 +403,7 @@ function renderStep3() {
                 <td style="font-weight: 600;">${formatNum(s.tong_vol)}</td>
                 <td>${formatNum(s.tong_kl)}</td>
                 <td>${s.so_ngay}</td>
-                <td style="color: #60a5fa; font-weight: 600;">${formatNum(s.vol_tb_ngay)}</td>
+                <td style="color: var(--accent-color); font-weight: 600;">${formatNum(s.vol_tb_ngay)}</td>
                 <td>${formatNum(s.kl_tb_ngay)}</td>
                 <td>${s.pct_tren_5kg}</td>
                 <td class="${getOPRClass(s.pct_opr)}">${formatPercent(s.pct_opr)}</td>
@@ -413,14 +413,13 @@ function renderStep3() {
                 <td style="font-weight: 600;">${s.top_tinh_giao}</td>
                 <td>${formatNum(s.kl_top_tinh_giao)}</td>
                 <td>${formatPercent(s.pct_kl_top_tinh_giao)}</td>
-                <td style="font-weight: 600; color: #fbbf24;">${formatNum(s.kl_tb_ngay_top_tinh_giao)} kg/ngày</td>
+                <td style="font-weight: 600; color: #9a3412;">${formatNum(s.kl_tb_ngay_top_tinh_giao)} kg/ngày</td>
             </tr>
         `;
     });
 }
 
 function buildTrendChart(routeName) {
-    // Truy vấn dữ liệu 3 tháng từ DB (March, April, May)
     let marData = dbData.route.find(r => r.thang === "2026-03" && r.tuyen === routeName);
     let aprData = dbData.route.find(r => r.thang === "2026-04" && r.tuyen === routeName);
     let mayData = dbData.route.find(r => r.thang === "2026-05" && r.tuyen === routeName);
@@ -460,7 +459,7 @@ function buildTrendChart(routeName) {
                     label: 'ODR (%)',
                     data: odrs,
                     borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.05)',
                     yAxisID: 'y1',
                     tension: 0.3,
                     borderWidth: 3,
@@ -470,7 +469,7 @@ function buildTrendChart(routeName) {
                     label: 'Longtail (%)',
                     data: longtails,
                     borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.05)',
                     yAxisID: 'y1',
                     tension: 0.3,
                     borderWidth: 2,
@@ -480,8 +479,8 @@ function buildTrendChart(routeName) {
                 {
                     label: 'Leadtime (h)',
                     data: leadtimes,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
                     yAxisID: 'y2',
                     tension: 0.3,
                     borderWidth: 3,
@@ -499,29 +498,29 @@ function buildTrendChart(routeName) {
                     min: 0,
                     max: 100,
                     ticks: {
-                        color: '#64748b',
+                        color: '#475569',
                         callback: function(value) { return value + "%"; }
                     },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    grid: { color: 'rgba(0, 0, 0, 0.04)' }
                 },
                 y2: {
                     type: 'linear',
                     position: 'right',
                     min: 0,
                     ticks: {
-                        color: '#64748b',
+                        color: '#475569',
                         callback: function(value) { return value + "h"; }
                     },
                     grid: { drawOnChartArea: false }
                 },
                 x: {
-                    ticks: { color: '#64748b' },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    ticks: { color: '#475569' },
+                    grid: { color: 'rgba(0, 0, 0, 0.04)' }
                 }
             },
             plugins: {
                 legend: {
-                    labels: { color: '#f8fafc', font: { size: 10 } }
+                    labels: { color: '#0f172a', font: { size: 10, weight: '500' } }
                 }
             }
         }

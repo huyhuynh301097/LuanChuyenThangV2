@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHN Focus Link - Phân Tích Dữ Liệu 3 Bước</title>
+    <title>GHN Focus Link - Trắng Sáng Cao Cấp</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,7 +14,7 @@
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="loader-box glass-panel">
-            <i class="fa-solid fa-sync fa-spin loader-icon"></i>
+            <i class="fa-solid fa-circle-notch fa-spin loader-icon"></i>
             <h2>Đang Đồng Bộ Dữ Liệu</h2>
             <p id="loading-status">Đang tải cấu trúc từ Google Sheets...</p>
             <div class="progress-bar-container">
@@ -27,16 +27,16 @@
         <!-- TOP CONTROL BAR -->
         <header class="app-header glass-panel">
             <div class="app-logo">
-                <i class="fa-solid fa-diagram-project"></i>
+                <i class="fa-solid fa-diagram-project text-blue"></i>
                 <div>
-                    <h2>GHN Focus Link v5</h2>
+                    <h2>GHN Focus Link v6</h2>
                     <span>Hệ thống phân tích liên kết & đối soát shop lỗi</span>
                 </div>
             </div>
             
             <div class="global-controls">
                 <div class="control-item">
-                    <label for="filter-month"><i class="fa-solid fa-calendar-alt"></i> Chọn Tháng Đối Soát:</label>
+                    <label for="filter-month"><i class="fa-solid fa-calendar-alt text-blue"></i> Chọn Tháng Đối Soát:</label>
                     <select id="filter-month" onchange="onMonthChange()">
                         <!-- Dynamic Months -->
                     </select>
@@ -44,7 +44,7 @@
             </div>
 
             <div class="header-actions">
-                <button class="btn-sync" onclick="reloadAllData()"><i class="fa-solid fa-rotate"></i> Làm Mới Dữ Liệu</button>
+                <button class="btn-sync" onclick="reloadAllData()"><i class="fa-solid fa-sync"></i> Đồng bộ Sheets</button>
             </div>
         </header>
 
@@ -60,8 +60,8 @@
                         <p>Xem toàn bộ chỉ số của 63 tỉnh trong tháng. Nhấp chọn một tỉnh để phân tích sâu hơn.</p>
                     </div>
                     <div class="step-legend">
-                        <span class="legend-item"><span class="color-box red"></span> Nguy cấp (<88% ODR / >18% Longtail)</span>
-                        <span class="legend-item"><span class="color-box yellow"></span> Cảnh báo (<92% ODR / >15% Longtail)</span>
+                        <span class="legend-item"><span class="color-box red"></span> Nguy cấp (&lt;88% %ODR / &gt;18% %Longtail)</span>
+                        <span class="legend-item"><span class="color-box yellow"></span> Cảnh báo (&lt;92% %ODR / &gt;15% %Longtail)</span>
                     </div>
                 </div>
 
@@ -71,12 +71,12 @@
                             <tr>
                                 <th class="sortable" onclick="sortData('prov', 'vung_lay')">Vùng <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('prov', 'tinh_lay')">Tỉnh Lấy <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('prov', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'vol')">Sản lượng <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('prov', 'kl')">Khối Lượng (Kg) <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('prov', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('prov', 'pct_rot_lc')">% Tuyến LC <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('prov', 'pct_odr')">% Giao Đúng Hạn (ODR) <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('prov', 'pct_longtail')">% Hàng Longtail <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_opr')">%OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_rot_lc')">%RớtLC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_odr')">%ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_longtail')">%Longtail <i class="fa-solid fa-sort"></i></th>
                             </tr>
                         </thead>
                         <tbody id="prov-tbody">
@@ -101,15 +101,15 @@
                         <thead>
                             <tr>
                                 <th>Tuyến Vận Chuyển</th>
-                                <th class="sortable" onclick="sortData('route', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_odr')">% ODR <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_longtail')">% Longtail <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'lt_tong')">Tổng Leadtime <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_1ktc')">% 1 KTC <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_2ktc')">% 2 KTC <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_3ktc')">% 3 KTC <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_4plus_ktc')">% 4+ KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'vol')">Sản lượng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_opr')">%OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_odr')">%ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_longtail')">%Longtail <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_tong')">Leadtime <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_1ktc')">%1KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_2ktc')">%2KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_3ktc')">%3KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_4plus_ktc')">%4+KTC <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('route', 'lt_xuat_bclay_nhap_ktc1')">LT BC→KTC1 <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('route', 'lt_ktc1_ktc2')">LT KTC1→2 <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('route', 'lt_ktc2_ktc3')">LT KTC2→3 <i class="fa-solid fa-sort"></i></th>
@@ -130,7 +130,7 @@
                     <div class="step-num">3</div>
                     <div class="step-title-text">
                         <h3>BƯỚC 3: Đối Soát Shop Tại <span id="shop-prov-label" class="label-highlight">Chưa Chọn</span> Có Đơn Gửi Đến <span id="shop-dest-label" class="label-highlight">Chưa Chọn</span></h3>
-                        <p>Định vị shop sản lượng cao gửi đi tỉnh giao top đang có hiệu suất ODR/OPR kém.</p>
+                        <p>Định vị shop sản lượng cao gửi đi tỉnh giao top đang có hiệu suất %ODR/%OPR kém.</p>
                     </div>
                 </div>
 
@@ -138,7 +138,7 @@
                 <div class="step3-grid">
                     <!-- Trend Chart Box -->
                     <div class="trend-chart-box glass-panel">
-                        <h4><i class="fa-solid fa-chart-line"></i> Xu Hướng Vận Hành Tuyến 3 Tháng Qua</h4>
+                        <h4><i class="fa-solid fa-chart-line text-blue"></i> Xu Hướng Vận Hành Tuyến Gửi Shop Sử Dụng</h4>
                         <div class="chart-wrapper">
                             <canvas id="routeTrendChart"></canvas>
                         </div>
@@ -161,11 +161,11 @@
                                         <th>Số Ngày Hoạt Động</th>
                                         <th class="sortable" onclick="sortData('shop', 'vol_tb_ngay')">Vol TB/Ngày <i class="fa-solid fa-sort"></i></th>
                                         <th class="sortable" onclick="sortData('shop', 'kl_tb_ngay')">KL TB/Ngày <i class="fa-solid fa-sort"></i></th>
-                                        <th class="sortable" onclick="sortData('shop', 'pct_tren_5kg')">% Đơn > 5Kg <i class="fa-solid fa-sort"></i></th>
-                                        <th class="sortable" onclick="sortData('shop', 'pct_opr')">% OPR Shop <i class="fa-solid fa-sort"></i></th>
-                                        <th class="sortable" onclick="sortData('shop', 'pct_rot_lc')">% Tuyến LC <i class="fa-solid fa-sort"></i></th>
-                                        <th class="sortable" onclick="sortData('shop', 'pct_odr')">% ODR Shop <i class="fa-solid fa-sort"></i></th>
-                                        <th class="sortable" onclick="sortData('shop', 'pct_longtail')">% Longtail Shop <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_tren_5kg')">% Đơn &gt; 5Kg <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_opr')">%OPR <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_rot_lc')">%RớtLC <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_odr')">%ODR <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_longtail')">%Longtail <i class="fa-solid fa-sort"></i></th>
                                         <th>Tỉnh Nhận Nhiều Nhất</th>
                                         <th>KL Tỉnh Nhận Top (Kg)</th>
                                         <th>% KL Tỉnh Giao Top</th>
