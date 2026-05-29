@@ -1,4 +1,4 @@
-// URLs kết nối trực tiếp đến Google Sheets (xuất định dạng CSV)
+// URLs kết nối trực tiếp đến Google Sheets (định dạng CSV)
 const sheetUrls = {
     prov: "https://docs.google.com/spreadsheets/d/1EFsJvtmSFpgVHs_dexmFJ73qygRBM6vlV2X3d0BhKfk/gviz/tq?tqx=out:csv&sheet=chi_so_tinh",
     route: "https://docs.google.com/spreadsheets/d/1EFsJvtmSFpgVHs_dexmFJ73qygRBM6vlV2X3d0BhKfk/gviz/tq?tqx=out:csv&sheet=chi_so_tuyen",
@@ -6,7 +6,7 @@ const sheetUrls = {
     shop: "https://docs.google.com/spreadsheets/d/1EFsJvtmSFpgVHs_dexmFJ73qygRBM6vlV2X3d0BhKfk/gviz/tq?tqx=out:csv&sheet=chi_so_shop"
 };
 
-// Global DB State
+// Global Data State
 let dbData = {
     prov: [],
     route: [],
@@ -14,32 +14,16 @@ let dbData = {
     shop: []
 };
 
-// Global Sort State
+// Active drill-down state
+let activeRouteFilter = null;
+
+// Sort State
 let sortState = {
-    prov: { key: 'vol', asc: false },
     route: { key: 'vol', asc: false },
-    lt: { key: 'lt_tong', asc: false },
     shop: { key: 'tong_vol', asc: false }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Chuyển đổi tab
-    const menuItems = document.querySelectorAll('.menu-item');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    menuItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            menuItems.forEach(i => i.classList.remove('active'));
-            tabContents.forEach(t => t.classList.remove('active'));
-
-            item.classList.add('active');
-            const tabId = item.getAttribute('data-tab');
-            document.getElementById(tabId).classList.add('active');
-        });
-    });
-
-    // Tải dữ liệu lần đầu
     loadAllData();
 });
 
@@ -84,7 +68,7 @@ function parseCSVLine(line) {
     return arr;
 }
 
-// Helpers for formatted indices
+// Formatters
 function formatNum(val) {
     if (!val) return "0";
     let n = parseFloat(val.toString().replace(/,/g, ''));
@@ -96,7 +80,6 @@ function formatPercent(val) {
     if (val.toString().includes('%')) return val;
     let p = parseFloat(val);
     if (isNaN(p)) return val;
-    // Nếu p lớn hơn 1 (ví dụ 95.8) thì hiển thị luôn, nếu bé hơn 1 (ví dụ 0.958) thì nhân 100
     if (p <= 1.0) {
         return (p * 100).toFixed(2) + "%";
     }
@@ -106,10 +89,21 @@ function formatPercent(val) {
 function formatHours(val) {
     if (!val) return "--";
     let h = parseFloat(val);
-    return isNaN(h) ? val : h.toFixed(2) + "h";
+    return isNaN(h) ? val : h.toFixed(1) + "h";
 }
 
-// Fetch & Load Data
+function normalizeProvName(name) {
+    if (!name) return "";
+    return name.toString().toLowerCase()
+        .replace(/tp\s+/g, '')
+        .replace(/tỉnh\s+/g, '')
+        .replace(/thành phố\s+/g, '')
+        .replace(/hồ chí minh/g, 'hcm')
+        .replace(/hà nội/g, 'hn')
+        .trim();
+}
+
+// Fetch DB
 async function loadAllData() {
     const overlay = document.getElementById('loading-overlay');
     const statusText = document.getElementById('loading-status');
@@ -119,44 +113,39 @@ async function loadAllData() {
     overlay.style.opacity = '1';
 
     try {
-        // Tải Tỉnh Lấy
-        statusText.innerText = "Tải dữ liệu Tỉnh Lấy (chi_so_tinh)...";
+        statusText.innerText = "Tải chỉ số Tỉnh Lấy (chi_so_tinh)...";
         progressBar.style.width = "25%";
         let resProv = await fetch(sheetUrls.prov);
         let textProv = await resProv.text();
         dbData.prov = parseCSV(textProv);
 
-        // Tải Tuyến Lấy - Giao
-        statusText.innerText = "Tải dữ liệu Tuyến Lấy - Giao (chi_so_tuyen)...";
+        statusText.innerText = "Tải chỉ số Tuyến Giao (chi_so_tuyen)...";
         progressBar.style.width = "50%";
         let resRoute = await fetch(sheetUrls.route);
         let textRoute = await resRoute.text();
         dbData.route = parseCSV(textRoute);
 
-        // Tải Phân tích Leadtime
-        statusText.innerText = "Tải dữ liệu phân tích Leadtime chi tiết...";
+        statusText.innerText = "Tải cơ cấu chặng Leadtime (Leadtime)...";
         progressBar.style.width = "75%";
         let resLt = await fetch(sheetUrls.lt);
         let textLt = await resLt.text();
         dbData.lt = parseCSV(textLt);
 
-        // Tải Hiệu Suất Shop
-        statusText.innerText = "Tải dữ liệu Hiệu Suất Shop (chi_so_shop)...";
+        statusText.innerText = "Tải hiệu suất doanh nghiệp (chi_so_shop)...";
         progressBar.style.width = "100%";
         let resShop = await fetch(sheetUrls.shop);
         let textShop = await resShop.text();
         dbData.shop = parseCSV(textShop);
 
-        // Thành công, ẩn loading
         setTimeout(() => {
             overlay.style.opacity = '0';
             setTimeout(() => { overlay.style.display = 'none'; }, 500);
-            initDB();
+            initUnifiedDashboard();
         }, 800);
 
     } catch (err) {
         console.error("Lỗi khi load DB:", err);
-        statusText.innerText = "Lỗi khi kết nối đến Google Sheets. Hãy kiểm tra kết nối mạng!";
+        statusText.innerText = "Lỗi kết nối Google Sheets! Vui lòng làm mới trang hoặc kiểm tra mạng.";
         statusText.style.color = "var(--danger-color)";
     }
 }
@@ -165,227 +154,224 @@ function reloadAllData() {
     loadAllData();
 }
 
-function initDB() {
-    populateFilters();
-    renderAllTables();
+function initUnifiedDashboard() {
+    // Điền bộ lọc tháng
+    let months = [...new Set(dbData.prov.map(d => d.thang))].filter(Boolean).sort().reverse();
+    let monthSelect = document.getElementById('global-select-thang');
+    monthSelect.innerHTML = '';
+    months.forEach(m => {
+        monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
+    });
+
+    // Điền bộ lọc tỉnh lấy
+    let provinces = [...new Set(dbData.prov.map(d => d.tinh_lay))].filter(Boolean).sort();
+    let provSelect = document.getElementById('global-select-tinh');
+    provSelect.innerHTML = '';
+    provinces.forEach(p => {
+        // Ưu tiên chọn Hà Nội hoặc Hồ Chí Minh làm mặc định
+        let selectedAttr = (p === 'Hồ Chí Minh' || p === 'Hà Nội') ? 'selected' : '';
+        provSelect.innerHTML += `<option value="${p}" ${selectedAttr}>${p}</option>`;
+    });
+
+    updateDashboard();
 }
 
-function populateFilters() {
-    // Lọc Tháng cho Tỉnh Lấy
-    let provThangs = [...new Set(dbData.prov.map(d => d.thang))].filter(Boolean).sort();
-    let provThangSelect = document.getElementById('prov-select-thang');
-    provThangSelect.innerHTML = '<option value="">-- Tất cả tháng --</option>';
-    provThangs.forEach(t => {
-        provThangSelect.innerHTML += `<option value="${t}">${t}</option>`;
-    });
-
-    // Lọc Tháng cho Tuyến
-    let routeThangs = [...new Set(dbData.route.map(d => d.thang))].filter(Boolean).sort();
-    let routeThangSelect = document.getElementById('route-select-thang');
-    routeThangSelect.innerHTML = '<option value="">-- Tất cả tháng --</option>';
-    routeThangs.forEach(t => {
-        routeThangSelect.innerHTML += `<option value="${t}">${t}</option>`;
-    });
-
-    // Lọc Tháng cho Leadtime
-    let ltThangs = [...new Set(dbData.lt.map(d => d.thang))].filter(Boolean).sort();
-    let ltThangSelect = document.getElementById('lt-select-thang');
-    ltThangSelect.innerHTML = '<option value="">-- Tất cả tháng --</option>';
-    ltThangs.forEach(t => {
-        ltThangSelect.innerHTML += `<option value="${t}">${t}</option>`;
-    });
-
-    // Lọc Tỉnh Lấy cho Shop
-    let shopTinhs = [...new Set(dbData.shop.map(d => d.tinh_lay))].filter(Boolean).sort();
-    let shopTinhSelect = document.getElementById('shop-select-tinh');
-    shopTinhSelect.innerHTML = '<option value="">-- Tất cả các tỉnh --</option>';
-    shopTinhs.forEach(t => {
-        shopTinhSelect.innerHTML += `<option value="${t}">${t}</option>`;
-    });
-}
-
-function renderAllTables() {
-    filterProvData();
-    filterRouteData();
-    filterLtData();
-    filterShopData();
-}
-
-// Helper to sort dynamically
-function sortDB(tabName, key) {
-    if (sortState[tabName].key === key) {
-        sortState[tabName].asc = !sortState[tabName].asc;
+function sortUnified(key) {
+    if (sortState.route.key === key) {
+        sortState.route.asc = !sortState.route.asc;
     } else {
-        sortState[tabName].key = key;
-        sortState[tabName].asc = true;
+        sortState.route.key = key;
+        sortState.route.asc = false;
     }
-    
-    // Khởi chạy render lại tab tương ứng
-    if (tabName === 'prov') filterProvData();
-    if (tabName === 'route') filterRouteData();
-    if (tabName === 'lt') filterLtData();
-    if (tabName === 'shop') filterShopData();
+    updateDashboard();
 }
 
-function getSortedArray(arr, key, asc) {
-    return [...arr].sort((a, b) => {
-        let valA = a[key];
-        let valB = b[key];
+function sortUnifiedShop(key) {
+    if (sortState.shop.key === key) {
+        sortState.shop.asc = !sortState.shop.asc;
+    } else {
+        sortState.shop.key = key;
+        sortState.shop.asc = false;
+    }
+    updateDashboard();
+}
 
-        // Xử lý chuyển đổi sang dạng số để sort chính xác
+// Main update execution
+function updateDashboard() {
+    const selectedThang = document.getElementById('global-select-thang').value;
+    const selectedProv = document.getElementById('global-select-tinh').value;
+
+    // 1. Tải Profile Tỉnh Lấy & Tính toán KPIs
+    let provProfile = dbData.prov.find(d => d.thang === selectedThang && d.tinh_lay === selectedProv);
+    const profileContainer = document.getElementById('prov-profile-content');
+
+    if (provProfile) {
+        document.getElementById('kpi-prov-vol').innerText = formatNum(provProfile.vol);
+        document.getElementById('kpi-prov-odr').innerText = formatPercent(provProfile.pct_odr);
+        document.getElementById('kpi-prov-opr').innerText = formatPercent(provProfile.pct_opr);
+
+        profileContainer.innerHTML = `
+            <div class="profile-item">
+                <span class="profile-label">Vùng Địa Lý</span>
+                <span class="profile-val badge info">${provProfile.vung_lay}</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Khối Lượng Pick</span>
+                <span class="profile-val">${formatNum(provProfile.kl)} kg</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Tỉ lệ local route LC</span>
+                <span class="profile-val">${formatPercent(provProfile.pct_rot_lc)}</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Tỉ lệ hàng Longtail</span>
+                <span class="profile-val badge warning">${formatPercent(provProfile.pct_longtail)}</span>
+            </div>
+        `;
+    } else {
+        profileContainer.innerHTML = '<p class="placeholder-text">Không có thông tin tổng quan tháng này.</p>';
+    }
+
+    // 2. Kết nối (JOIN) Tuyến và Leadtime
+    let matchedRoutes = dbData.route.filter(r => r.thang === selectedThang && r.tuyen.startsWith(selectedProv + " - "));
+    
+    let joinedRoutes = matchedRoutes.map(r => {
+        let ltInfo = dbData.lt.find(l => l.thang === selectedThang && l.tuyen === r.tuyen);
+        return {
+            ...r,
+            ltInfo: ltInfo || {}
+        };
+    });
+
+    // Tính toán Weighted Average Leadtime
+    let totalVol = 0;
+    let weightedLtSum = 0;
+    joinedRoutes.forEach(r => {
+        let vol = parseFloat(r.vol.toString().replace(/,/g, '')) || 0;
+        let lt = parseFloat(r.ltInfo.lt_tong || r.Leadtine) || 0;
+        if (vol > 0 && lt > 0) {
+            totalVol += vol;
+            weightedLtSum += (lt * vol);
+        }
+    });
+    let avgLtOutbound = totalVol > 0 ? (weightedLtSum / totalVol) : 0;
+    document.getElementById('kpi-prov-leadtime').innerText = avgLtOutbound > 0 ? avgLtOutbound.toFixed(1) + "h" : "--";
+
+    // Sort Tuyến
+    let rKey = sortState.route.key;
+    let rAsc = sortState.route.asc;
+    joinedRoutes.sort((a, b) => {
+        let valA = a[rKey] || a.ltInfo[rKey] || 0;
+        let valB = b[rKey] || b.ltInfo[rKey] || 0;
         let numA = parseFloat(valA.toString().replace(/,/g, '').replace(/%/g, ''));
         let numB = parseFloat(valB.toString().replace(/,/g, '').replace(/%/g, ''));
 
         if (!isNaN(numA) && !isNaN(numB)) {
-            return asc ? (numA - numB) : (numB - numA);
+            return rAsc ? (numA - numB) : (numB - numA);
         }
-
-        // Nếu là String
-        return asc ? 
-            valA.toString().localeCompare(valB.toString()) : 
-            valB.toString().localeCompare(valA.toString());
-    });
-}
-
-// ==================== TAB 1: RENDER CHỈ SỐ TỈNH ====================
-function filterProvData() {
-    let nameSearch = document.getElementById('prov-search-tinh').value.toLowerCase();
-    let thangFilter = document.getElementById('prov-select-thang').value;
-
-    let filtered = dbData.prov.filter(d => {
-        let matchName = d.tinh_lay.toLowerCase().includes(nameSearch);
-        let matchThang = thangFilter === "" ? true : d.thang === thangFilter;
-        return matchName && matchThang;
+        return rAsc ? valA.toString().localeCompare(valB.toString()) : valB.toString().localeCompare(valA.toString());
     });
 
-    let sorted = getSortedArray(filtered, sortState.prov.key, sortState.prov.asc);
-    
-    const tbody = document.getElementById('prov-table-body');
-    tbody.innerHTML = '';
+    // Render Bảng Tuyến Giao đã JOIN
+    const routesTbody = document.getElementById('joined-routes-tbody');
+    routesTbody.innerHTML = '';
 
-    sorted.forEach(d => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${d.thang}</td>
-                <td>${d.vung_lay}</td>
-                <td style="font-weight: 600;">${d.tinh_lay}</td>
-                <td style="font-weight: 600; color: #60a5fa;">${formatNum(d.vol)}</td>
-                <td>${formatNum(d.kl)}</td>
-                <td><span class="badge info">${formatPercent(d.pct_opr)}</span></td>
-                <td>${formatPercent(d.pct_rot_lc)}</td>
-                <td><span class="badge ${parseFloat(d.pct_odr) < 0.85 ? 'danger' : 'success'}">${formatPercent(d.pct_odr)}</span></td>
-                <td>${formatPercent(d.pct_longtail)}</td>
-            </tr>
-        `;
-    });
-}
+    if (joinedRoutes.length === 0) {
+        routesTbody.innerHTML = '<tr><td colspan="9" class="placeholder-text">Không tìm thấy tuyến nào xuất phát từ tỉnh này.</td></tr>';
+    } else {
+        joinedRoutes.forEach(r => {
+            let activeClass = (activeRouteFilter === r.tuyen) ? 'active-row' : '';
+            
+            // Cấu trúc phân bổ số KTC đi qua
+            let ktcSplit = `1 KTC: ${formatPercent(r.ltInfo.pct_1ktc || 0)} | 2 KTC: ${formatPercent(r.ltInfo.pct_2ktc || 0)}`;
 
-// ==================== TAB 2: RENDER CHỈ SỐ TUYẾN ====================
-function filterRouteData() {
-    let tuyenSearch = document.getElementById('route-search-tuyen').value.toLowerCase();
-    let thangFilter = document.getElementById('route-select-thang').value;
-    let ktcSearch = document.getElementById('route-search-ktc').value.toLowerCase();
+            routesTbody.innerHTML += `
+                <tr class="clickable ${activeClass}" onclick="selectRoute('${r.tuyen}')">
+                    <td style="font-weight: 600; color: #60a5fa;"><i class="fa-solid fa-arrow-trend-up"></i> ${r.tuyen}</td>
+                    <td style="font-weight: 600;">${formatNum(r.vol)}</td>
+                    <td>${formatPercent(r.pct_opr)}</td>
+                    <td><span class="badge ${parseFloat(r.pct_odr) < 0.85 ? 'danger' : 'success'}">${formatPercent(r.pct_odr)}</span></td>
+                    <td>${formatHours(r.ltInfo.lt_xuat_bclay_nhap_ktc1)}</td>
+                    <td>${formatHours(r.ltInfo.lt_ktc1_ktc2)}</td>
+                    <td>${formatHours(r.ltInfo.lt_ktc_cuoi_nhap_bcgiao)}</td>
+                    <td style="font-weight: 700; color: #10b981;">${formatHours(r.ltInfo.lt_tong || r.Leadtine)}</td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">${r["KTC/KCT lấy"]} → ${r["KTC/KCT giao"]} (${ktcSplit})</td>
+                </tr>
+            `;
+        });
+    }
 
-    let filtered = dbData.route.filter(d => {
-        let matchTuyen = d.tuyen.toLowerCase().includes(tuyenSearch);
-        let matchThang = thangFilter === "" ? true : d.thang === thangFilter;
+    // 3. Hiển thị Shops thuộc Tỉnh Lấy và Lọc theo Tuyến kết nối
+    let shopList = dbData.shop.filter(s => s.tinh_lay === selectedProv);
+
+    // Xử lý bộ lọc tuyến (nếu được bấm chọn)
+    const activeBadge = document.getElementById('active-route-filter');
+    if (activeRouteFilter) {
+        activeBadge.style.display = 'flex';
+        document.getElementById('filtered-route-name').innerText = activeRouteFilter;
         
-        let ktcLấy = (d["KTC/KCT lấy"] || "").toLowerCase();
-        let ktcGiao = (d["KTC/KCT giao"] || "").toLowerCase();
-        let matchKtc = ktcSearch === "" ? true : (ktcLấy.includes(ktcSearch) || ktcGiao.includes(ktcSearch));
+        let targetDeliveryProv = activeRouteFilter.split(" - ")[1];
+        let normalizedTarget = normalizeProvName(targetDeliveryProv);
         
-        return matchTuyen && matchThang && matchKtc;
+        shopList = shopList.filter(s => {
+            let normalizedShopTopProv = normalizeProvName(s.top_tinh_giao);
+            return normalizedShopTopProv.includes(normalizedTarget) || normalizedTarget.includes(normalizedShopTopProv);
+        });
+    } else {
+        activeBadge.style.display = 'none';
+    }
+
+    // Sort Shops
+    let sKey = sortState.shop.key;
+    let sAsc = sortState.shop.asc;
+    shopList.sort((a, b) => {
+        let valA = a[sKey] || 0;
+        let valB = b[sKey] || 0;
+        let numA = parseFloat(valA.toString().replace(/,/g, '').replace(/%/g, ''));
+        let numB = parseFloat(valB.toString().replace(/,/g, '').replace(/%/g, ''));
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return sAsc ? (numA - numB) : (numB - numA);
+        }
+        return sAsc ? valA.toString().localeCompare(valB.toString()) : valB.toString().localeCompare(valA.toString());
     });
 
-    let sorted = getSortedArray(filtered, sortState.route.key, sortState.route.asc);
+    // Render Bảng Shop
+    const shopTbody = document.getElementById('shop-tbody');
+    shopTbody.innerHTML = '';
 
-    const tbody = document.getElementById('route-table-body');
-    tbody.innerHTML = '';
-
-    sorted.forEach(d => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${d.thang}</td>
-                <td style="font-weight: 600; color: #60a5fa;">${d.tuyen}</td>
-                <td style="font-weight: 600;">${formatNum(d.vol)}</td>
-                <td>${formatNum(d.kl)}</td>
-                <td>${formatPercent(d.pct_opr)}</td>
-                <td><span class="badge ${parseFloat(d.pct_odr) < 0.85 ? 'danger' : 'success'}">${formatPercent(d.pct_odr)}</span></td>
-                <td style="font-weight: 600;"><span class="badge info">${formatHours(d.Leadtine)}</span></td>
-                <td>${d["KTC/KCT lấy"] || "--"}</td>
-                <td>${d["KTC/KCT giao"] || "--"}</td>
-            </tr>
-        `;
-    });
+    if (shopList.length === 0) {
+        shopTbody.innerHTML = '<tr><td colspan="9" class="placeholder-text">Không có shop nào hoạt động phù hợp bộ lọc tuyến hiện tại.</td></tr>';
+    } else {
+        shopList.forEach(s => {
+            shopTbody.innerHTML += `
+                <tr>
+                    <td style="font-weight: 600; color: #f8fafc;">${s.ten_kh}</td>
+                    <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name} (ID: ${s.pickwarehouseid})</td>
+                    <td>${s.quan}</td>
+                    <td style="font-weight: 600;">${formatNum(s.tong_vol)}</td>
+                    <td style="color: #60a5fa; font-weight: 500;">${formatNum(s.vol_tb_ngay)}/ngày</td>
+                    <td><span class="badge ${parseFloat(s.pct_odr) < 0.90 ? 'danger' : 'success'}">${formatPercent(s.pct_odr)}</span></td>
+                    <td>${formatPercent(s.pct_opr)}</td>
+                    <td style="font-weight: 600;">${s.top_tinh_giao}</td>
+                    <td>${formatPercent(s.pct_kl_top_tinh_giao)}</td>
+                </tr>
+            `;
+        });
+    }
 }
 
-// ==================== TAB 3: RENDER LEADTIME CHẶNG ====================
-function filterLtData() {
-    let tuyenSearch = document.getElementById('lt-search-tuyen').value.toLowerCase();
-    let thangFilter = document.getElementById('lt-select-thang').value;
-
-    let filtered = dbData.lt.filter(d => {
-        let matchTuyen = d.tuyen.toLowerCase().includes(tuyenSearch);
-        let matchThang = thangFilter === "" ? true : d.thang === thangFilter;
-        return matchTuyen && matchThang;
-    });
-
-    let sorted = getSortedArray(filtered, sortState.lt.key, sortState.lt.asc);
-
-    const tbody = document.getElementById('lt-table-body');
-    tbody.innerHTML = '';
-
-    sorted.forEach(d => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${d.thang}</td>
-                <td style="font-weight: 600; color: #60a5fa;">${d.tuyen}</td>
-                <td>${formatNum(d.so_don)}</td>
-                <td>${formatPercent(d.pct_1ktc)}</td>
-                <td>${formatPercent(d.pct_2ktc)}</td>
-                <td>${formatPercent(d.pct_3ktc)}</td>
-                <td>${formatHours(d.lt_xuat_bclay_nhap_ktc1)}</td>
-                <td>${formatHours(d.lt_ktc1_ktc2)}</td>
-                <td>${formatHours(d.lt_ktc2_ktc3)}</td>
-                <td>${formatHours(d.lt_ktc_cuoi_nhap_bcgiao)}</td>
-                <td style="font-weight: 700; color: #10b981;">${formatHours(d.lt_tong)}</td>
-            </tr>
-        `;
-    });
+// Lọc shop khi bấm chọn 1 Tuyến liên quan
+function selectRoute(routeName) {
+    if (activeRouteFilter === routeName) {
+        activeRouteFilter = null; // Bấm lại sẽ clear lọc
+    } else {
+        activeRouteFilter = routeName;
+    }
+    updateDashboard();
 }
 
-// ==================== TAB 4: RENDER HIỆU SUẤT SHOP ====================
-function filterShopData() {
-    let nameSearch = document.getElementById('shop-search-name').value.toLowerCase();
-    let tinhFilter = document.getElementById('shop-select-tinh').value;
-    let bcSearch = document.getElementById('shop-search-bc').value.toLowerCase();
-
-    let filtered = dbData.shop.filter(d => {
-        let matchName = d.ten_kh.toLowerCase().includes(nameSearch) || d.pickwarehouseid.toLowerCase().includes(nameSearch);
-        let matchTinh = tinhFilter === "" ? true : d.tinh_lay === tinhFilter;
-        let matchBc = bcSearch === "" ? true : d.warehouse_name.toLowerCase().includes(bcSearch);
-        return matchName && matchTinh && matchBc;
-    });
-
-    let sorted = getSortedArray(filtered, sortState.shop.key, sortState.shop.asc);
-
-    const tbody = document.getElementById('shop-table-body');
-    tbody.innerHTML = '';
-
-    sorted.forEach(d => {
-        tbody.innerHTML += `
-            <tr>
-                <td style="font-weight: 600; color: #f8fafc;">${d.ten_kh}</td>
-                <td style="font-size: 0.85rem; color: #94a3b8;">${d.warehouse_name} (ID: ${d.pickwarehouseid})</td>
-                <td>${d.tinh_lay}</td>
-                <td>${d.quan}</td>
-                <td style="font-weight: 600;">${formatNum(d.tong_vol)}</td>
-                <td style="color: #60a5fa;">${formatNum(d.vol_tb_ngay)}</td>
-                <td><span class="badge ${parseFloat(d.pct_odr) < 0.90 ? 'danger' : 'success'}">${formatPercent(d.pct_odr)}</span></td>
-                <td>${formatPercent(d.pct_opr)}</td>
-                <td style="font-weight: 600;">${d.top_tinh_giao}</td>
-                <td>${formatPercent(d.pct_kl_top_tinh_giao)}</td>
-            </tr>
-        `;
-    });
+function clearRouteFilter() {
+    activeRouteFilter = null;
+    updateDashboard();
 }
