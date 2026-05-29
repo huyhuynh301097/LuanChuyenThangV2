@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHN Vận Hành - Trung Tâm Điều Phối Quốc Gia</title>
+    <title>GHN Optimizer - Chuỗi Phân Tích Liên Kết</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,8 +12,8 @@
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="loader-box glass-panel">
-            <i class="fa-solid fa-circle-notch fa-spin loader-icon"></i>
-            <h2>Kết Nối Hệ Thống Dữ Liệu</h2>
+            <i class="fa-solid fa-sync fa-spin loader-icon"></i>
+            <h2>Đang Đồng Bộ Dữ Liệu</h2>
             <p id="loading-status">Đang tải cấu trúc từ Google Sheets...</p>
             <div class="progress-bar-container">
                 <div id="loading-progress" class="progress-bar" style="width: 0%"></div>
@@ -21,151 +21,132 @@
         </div>
     </div>
 
-    <div class="dashboard-container">
-        <!-- Main Layout -->
-        <main class="main-content unified-dashboard">
-            <!-- Top Control Bar -->
-            <header class="topbar glass-panel unified-header">
-                <div class="logo">
-                    <i class="fa-solid fa-circle-nodes"></i>
-                    <h2>GHN Unified Dashboard</h2>
-                </div>
-                
-                <!-- Global Filter Bar -->
-                <div class="global-filters">
-                    <div class="control-group">
-                        <label for="global-select-thang"><i class="fa-solid fa-calendar-days"></i> Tháng:</label>
-                        <select id="global-select-thang" onchange="updateDashboard()">
-                            <!-- Dynamic months -->
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label for="global-select-tinh"><i class="fa-solid fa-map-location-dot"></i> Tỉnh Lấy Cần Focus:</label>
-                        <select id="global-select-tinh" class="highlight-select" onchange="updateDashboard()">
-                            <!-- Dynamic provinces -->
-                        </select>
-                    </div>
-                </div>
-
-                <div class="db-actions">
-                    <button class="btn-refresh" onclick="reloadAllData()"><i class="fa-solid fa-sync"></i> Đồng bộ Sheets</button>
-                </div>
-            </header>
-
-            <div class="dashboard-body">
-                <!-- TOP CARD ROW: Global KPIs for the selected Province -->
-                <div class="kpi-cards">
-                    <div class="kpi-card glass-panel card-blue">
-                        <div class="kpi-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
-                        <div class="kpi-data">
-                            <h3>Tổng Sản Lượng Tỉnh Lấy</h3>
-                            <p class="value" id="kpi-prov-vol">--</p>
-                        </div>
-                    </div>
-                    <div class="kpi-card glass-panel card-green">
-                        <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-                        <div class="kpi-data">
-                            <h3>Tỉ Lệ Giao Đúng Hạn (ODR)</h3>
-                            <p class="value" id="kpi-prov-odr">--%</p>
-                        </div>
-                    </div>
-                    <div class="kpi-card glass-panel card-purple">
-                        <div class="kpi-icon"><i class="fa-solid fa-hourglass-half"></i></div>
-                        <div class="kpi-data">
-                            <h3>Leadtime Trung Bình Xuất Tỉnh</h3>
-                            <p class="value" id="kpi-prov-leadtime">--h</p>
-                        </div>
-                    </div>
-                    <div class="kpi-card glass-panel card-orange">
-                        <div class="kpi-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
-                        <div class="kpi-data">
-                            <h3>Tỉ Lệ Hoàn Thành Pick (OPR)</h3>
-                            <p class="value" id="kpi-prov-opr">--%</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MIDDLE SECTION: Provinces & Routes Join -->
-                <div class="main-grid-row">
-                    <!-- Province Operational Profile -->
-                    <div class="glass-panel left-panel">
-                        <div class="panel-header">
-                            <h3><i class="fa-solid fa-map-pin"></i> Đặc Điểm Tỉnh Lấy</h3>
-                            <span class="badge info">chi_so_tinh</span>
-                        </div>
-                        <div class="profile-details" id="prov-profile-content">
-                            <!-- Dynamic profile info -->
-                            <p class="placeholder-text">Đang load dữ liệu...</p>
-                        </div>
-                    </div>
-
-                    <!-- Joined Route & Leadtime analysis table -->
-                    <div class="glass-panel right-panel">
-                        <div class="panel-header">
-                            <h3><i class="fa-solid fa-route"></i> Đối Soát Liên Kết Các Tuyến Lấy - Giao</h3>
-                            <div class="panel-actions">
-                                <span class="badge success">Liên kết chi_so_tuyen + Leadtime</span>
-                                <span class="badge warning">Bấm vào tuyến để lọc sâu Shop</span>
-                            </div>
-                        </div>
-                        <div class="table-container large-table">
-                            <table class="data-table" id="joined-routes-table">
-                                <thead>
-                                    <tr>
-                                        <th>Tuyến Lấy - Giao</th>
-                                        <th class="sortable" onclick="sortUnified('vol')">Sản Lượng <i class="fa-solid fa-sort"></i></th>
-                                        <th class="sortable" onclick="sortUnified('pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
-                                        <th class="sortable" onclick="sortUnified('pct_odr')">% ODR <i class="fa-solid fa-sort"></i></th>
-                                        <th>Chặng 1 (BC→KTC1)</th>
-                                        <th>Chặng 2 (KTC1→2)</th>
-                                        <th>Chặng Cuối (KTC→BC)</th>
-                                        <th class="sortable" onclick="sortUnified('lt_tong')">Tổng LT (h) <i class="fa-solid fa-sort"></i></th>
-                                        <th>Cấu Trúc KTC</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="joined-routes-tbody">
-                                    <!-- Dynamic -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BOTTOM SECTION: Connected Shops performance -->
-                <div class="glass-panel bottom-panel">
-                    <div class="panel-header">
-                        <div class="title-with-filter-status">
-                            <h3><i class="fa-solid fa-store"></i> Hiệu Suất Shop Thuộc Tỉnh Lấy Đang Lọc</h3>
-                            <span id="active-route-filter" class="active-filter-badge" style="display: none;">
-                                Đang lọc theo Tuyến Giao: <strong id="filtered-route-name">--</strong>
-                                <button class="btn-clear-filter" onclick="clearRouteFilter()"><i class="fa-solid fa-xmark"></i> Hủy lọc</button>
-                            </span>
-                        </div>
-                        <span class="badge info">chi_so_shop</span>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th class="sortable" onclick="sortUnifiedShop('ten_kh')">Tên Khách Hàng <i class="fa-solid fa-sort"></i></th>
-                                    <th>Mã Kho / Tên Kho Gửi</th>
-                                    <th>Quận/Huyện</th>
-                                    <th class="sortable" onclick="sortUnifiedShop('tong_vol')">Tổng Vol <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortUnifiedShop('vol_tb_ngay')">Vol TB/Ngày <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortUnifiedShop('pct_odr')">% ODR <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortUnifiedShop('pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
-                                    <th>Tỉnh Giao Hàng Nhiều Nhất</th>
-                                    <th>% KL Tỉnh Giao Top</th>
-                                </tr>
-                            </thead>
-                            <tbody id="shop-tbody">
-                                <!-- Dynamic -->
-                            </tbody>
-                        </table>
-                    </div>
+    <div class="app-layout">
+        <!-- TOP CONTROL BAR -->
+        <header class="app-header glass-panel">
+            <div class="app-logo">
+                <i class="fa-solid fa-diagram-project"></i>
+                <div>
+                    <h2>GHN Focus Link</h2>
+                    <span>Hệ thống phân tích liên kết & định vị shop lỗi</span>
                 </div>
             </div>
-        </main>
+            
+            <div class="global-controls">
+                <div class="control-item">
+                    <label for="filter-month"><i class="fa-solid fa-calendar-alt"></i> Chọn Tháng Đối Soát:</label>
+                    <select id="filter-month" onchange="onMonthChange()">
+                        <!-- Dynamic Months -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn-sync" onclick="reloadAllData()"><i class="fa-solid fa-rotate"></i> Làm Mới Dữ Liệu</button>
+            </div>
+        </header>
+
+        <!-- UNIFIED DASHBOARD CONTAINER -->
+        <div class="dashboard-body">
+            
+            <!-- STEP 1: PROVINCE OUTLOOK -->
+            <section class="step-section glass-panel" id="section-step1">
+                <div class="section-title-bar">
+                    <div class="step-num">1</div>
+                    <div class="step-title-text">
+                        <h3>BƯỚC 1: Đánh Giá Hiệu Suất Tỉnh Lấy (chi_so_tinh)</h3>
+                        <p>Xem toàn bộ chỉ số của 63 tỉnh trong tháng. Nhấp chọn một tỉnh bị lỗi ODR/Longtail/OPR để phân tích tiếp.</p>
+                    </div>
+                    <div class="step-legend">
+                        <span class="legend-item"><span class="color-box red"></span> Nguy cấp (<88% ODR / >18% Longtail)</span>
+                        <span class="legend-item"><span class="color-box yellow"></span> Cảnh báo (<92% ODR / >15% Longtail)</span>
+                    </div>
+                </div>
+
+                <div class="table-scroll-container limit-prov">
+                    <table class="data-table" id="prov-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortData('prov', 'vung_lay')">Vùng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'tinh_lay')">Tỉnh Lấy <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'kl')">Khối Lượng (Kg) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_opr')">% Hoàn Thành Pick (OPR) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_rot_lc')">% Tuyến LC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_odr')">% Giao Đúng Hạn (ODR) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_longtail')">% Hàng Longtail <i class="fa-solid fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="prov-tbody">
+                            <!-- Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- STEP 2: ROUTE ANALYSIS -->
+            <section class="step-section glass-panel disabled-step" id="section-step2">
+                <div class="section-title-bar">
+                    <div class="step-num">2</div>
+                    <div class="step-title-text">
+                        <h3>BƯỚC 2: Phân Tích Tuyến Lấy - Giao Của Tỉnh <span id="selected-prov-label" class="label-highlight">Chưa Chọn</span></h3>
+                        <p>Danh sách các tuyến vận chuyển đi từ tỉnh lấy được chọn. Bấm chọn tuyến có hiệu suất kém (ODR thấp, Longtail cao, Leadtime dài) để xem danh sách Shop tương ứng.</p>
+                    </div>
+                </div>
+
+                <div class="table-scroll-container limit-route">
+                    <table class="data-table" id="route-table">
+                        <thead>
+                            <tr>
+                                <th>Tuyến Vận Chuyển</th>
+                                <th class="sortable" onclick="sortData('route', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_odr')">% Giao Đúng Hạn (ODR) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_longtail')">% Hàng Longtail <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_tong')">Tổng Leadtime (BC Lấy → BC Giao) <i class="fa-solid fa-sort"></i></th>
+                                <th>Mạng Lưới KTC Di Chuyển</th>
+                            </tr>
+                        </thead>
+                        <tbody id="route-tbody">
+                            <tr><td colspan="7" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- STEP 3: SHOP DEEP DIVE -->
+            <section class="step-section glass-panel disabled-step" id="section-step3">
+                <div class="section-title-bar">
+                    <div class="step-num">3</div>
+                    <div class="step-title-text">
+                        <h3>BƯỚC 3: Đối Soát Shop Tại <span id="shop-prov-label" class="label-highlight">Chưa Chọn</span> Có Đơn Gửi Đến <span id="shop-dest-label" class="label-highlight">Chưa Chọn</span></h3>
+                        <p>Định vị chính xác các shop có chỉ số hoạt động thấp (ODR thấp) đang gửi đơn hàng lượng nhiều nhất vào tỉnh giao gặp sự cố để đưa ra giải pháp xử lý.</p>
+                    </div>
+                </div>
+
+                <div class="table-scroll-container limit-shop">
+                    <table class="data-table" id="shop-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortData('shop', 'ten_kh')">Tên Doanh Nghiệp (Shop) <i class="fa-solid fa-sort"></i></th>
+                                <th>Bưu Cục Gửi (Mã Kho)</th>
+                                <th>Quận / Huyện Lấy</th>
+                                <th class="sortable" onclick="sortData('shop', 'tong_vol')">Tổng Sản Lượng Gửi <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('shop', 'vol_tb_ngay')">Vol TB/Ngày <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('shop', 'kl_tb_ngay_top_tinh_giao')">Khối Lượng Gửi Đi Tỉnh Giao Top (Kg/Ngày) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('shop', 'pct_odr')">% Giao Đúng Hạn (ODR Shop) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('shop', 'pct_opr')">% Pick Thành Công (OPR Shop) <i class="fa-solid fa-sort"></i></th>
+                                <th>Tỉnh Nhận Nhiều Nhất</th>
+                                <th>% KL Đi Tỉnh Nhận Top</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shop-tbody">
+                            <tr><td colspan="10" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </div>
 
     <script src="app.js"></script>

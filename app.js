@@ -1,4 +1,4 @@
-// URLs kết nối trực tiếp đến Google Sheets (định dạng CSV)
+// URLs kết nối trực tiếp đến Google Sheets (xuất định dạng CSV)
 const sheetUrls = {
     prov: "https://docs.google.com/spreadsheets/d/1EFsJvtmSFpgVHs_dexmFJ73qygRBM6vlV2X3d0BhKfk/gviz/tq?tqx=out:csv&sheet=chi_so_tinh",
     route: "https://docs.google.com/spreadsheets/d/1EFsJvtmSFpgVHs_dexmFJ73qygRBM6vlV2X3d0BhKfk/gviz/tq?tqx=out:csv&sheet=chi_so_tuyen",
@@ -6,7 +6,7 @@ const sheetUrls = {
     shop: "https://docs.google.com/spreadsheets/d/1EFsJvtmSFpgVHs_dexmFJ73qygRBM6vlV2X3d0BhKfk/gviz/tq?tqx=out:csv&sheet=chi_so_shop"
 };
 
-// Global Data State
+// Global DB
 let dbData = {
     prov: [],
     route: [],
@@ -14,11 +14,14 @@ let dbData = {
     shop: []
 };
 
-// Active drill-down state
-let activeRouteFilter = null;
+// Selection State
+let selectedMonth = "";
+let selectedProv = "";
+let selectedRoute = "";
 
-// Sort State
+// Sorting States
 let sortState = {
+    prov: { key: 'vol', asc: false },
     route: { key: 'vol', asc: false },
     shop: { key: 'tong_vol', asc: false }
 };
@@ -92,14 +95,15 @@ function formatHours(val) {
     return isNaN(h) ? val : h.toFixed(1) + "h";
 }
 
-function normalizeProvName(name) {
-    if (!name) return "";
-    return name.toString().toLowerCase()
-        .replace(/tp\s+/g, '')
-        .replace(/tỉnh\s+/g, '')
-        .replace(/thành phố\s+/g, '')
-        .replace(/hồ chí minh/g, 'hcm')
-        .replace(/hà nội/g, 'hn')
+function normalizeProv(p) {
+    if (!p) return "";
+    return p.toString().toLowerCase()
+        .replace(/tp\./gi, '')
+        .replace(/tp\s+/gi, '')
+        .replace(/thành phố\s+/gi, '')
+        .replace(/tỉnh\s+/gi, '')
+        .replace(/hồ chí minh/gi, 'hcm')
+        .replace(/hà nội/gi, 'hn')
         .trim();
 }
 
@@ -113,25 +117,25 @@ async function loadAllData() {
     overlay.style.opacity = '1';
 
     try {
-        statusText.innerText = "Tải chỉ số Tỉnh Lấy (chi_so_tinh)...";
+        statusText.innerText = "Đồng bộ chỉ số Tỉnh Lấy (chi_so_tinh)...";
         progressBar.style.width = "25%";
         let resProv = await fetch(sheetUrls.prov);
         let textProv = await resProv.text();
         dbData.prov = parseCSV(textProv);
 
-        statusText.innerText = "Tải chỉ số Tuyến Giao (chi_so_tuyen)...";
+        statusText.innerText = "Đồng bộ chỉ số Tuyến Vận Chuyển (chi_so_tuyen)...";
         progressBar.style.width = "50%";
         let resRoute = await fetch(sheetUrls.route);
         let textRoute = await resRoute.text();
         dbData.route = parseCSV(textRoute);
 
-        statusText.innerText = "Tải cơ cấu chặng Leadtime (Leadtime)...";
+        statusText.innerText = "Đồng bộ chặng Leadtime (Leadtime)...";
         progressBar.style.width = "75%";
         let resLt = await fetch(sheetUrls.lt);
         let textLt = await resLt.text();
         dbData.lt = parseCSV(textLt);
 
-        statusText.innerText = "Tải hiệu suất doanh nghiệp (chi_so_shop)...";
+        statusText.innerText = "Đồng bộ hiệu suất Shop (chi_so_shop)...";
         progressBar.style.width = "100%";
         let resShop = await fetch(sheetUrls.shop);
         let textShop = await resShop.text();
@@ -140,12 +144,12 @@ async function loadAllData() {
         setTimeout(() => {
             overlay.style.opacity = '0';
             setTimeout(() => { overlay.style.display = 'none'; }, 500);
-            initUnifiedDashboard();
+            initApp();
         }, 800);
 
     } catch (err) {
-        console.error("Lỗi khi load DB:", err);
-        statusText.innerText = "Lỗi kết nối Google Sheets! Vui lòng làm mới trang hoặc kiểm tra mạng.";
+        console.error("Lỗi đồng bộ DB:", err);
+        statusText.innerText = "Đồng bộ Google Sheets thất bại! Vui lòng kiểm tra lại đường truyền mạng.";
         statusText.style.color = "var(--danger-color)";
     }
 }
@@ -154,224 +158,235 @@ function reloadAllData() {
     loadAllData();
 }
 
-function initUnifiedDashboard() {
+function initApp() {
     // Điền bộ lọc tháng
     let months = [...new Set(dbData.prov.map(d => d.thang))].filter(Boolean).sort().reverse();
-    let monthSelect = document.getElementById('global-select-thang');
+    let monthSelect = document.getElementById('filter-month');
     monthSelect.innerHTML = '';
     months.forEach(m => {
         monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
     });
 
-    // Điền bộ lọc tỉnh lấy
-    let provinces = [...new Set(dbData.prov.map(d => d.tinh_lay))].filter(Boolean).sort();
-    let provSelect = document.getElementById('global-select-tinh');
-    provSelect.innerHTML = '';
-    provinces.forEach(p => {
-        // Ưu tiên chọn Hà Nội hoặc Hồ Chí Minh làm mặc định
-        let selectedAttr = (p === 'Hồ Chí Minh' || p === 'Hà Nội') ? 'selected' : '';
-        provSelect.innerHTML += `<option value="${p}" ${selectedAttr}>${p}</option>`;
-    });
-
-    updateDashboard();
+    selectedMonth = monthSelect.value;
+    resetSelections();
+    renderStep1();
 }
 
-function sortUnified(key) {
-    if (sortState.route.key === key) {
-        sortState.route.asc = !sortState.route.asc;
-    } else {
-        sortState.route.key = key;
-        sortState.route.asc = false;
-    }
-    updateDashboard();
+function onMonthChange() {
+    selectedMonth = document.getElementById('filter-month').value;
+    resetSelections();
+    renderStep1();
 }
 
-function sortUnifiedShop(key) {
-    if (sortState.shop.key === key) {
-        sortState.shop.asc = !sortState.shop.asc;
-    } else {
-        sortState.shop.key = key;
-        sortState.shop.asc = false;
-    }
-    updateDashboard();
-}
-
-// Main update execution
-function updateDashboard() {
-    const selectedThang = document.getElementById('global-select-thang').value;
-    const selectedProv = document.getElementById('global-select-tinh').value;
-
-    // 1. Tải Profile Tỉnh Lấy & Tính toán KPIs
-    let provProfile = dbData.prov.find(d => d.thang === selectedThang && d.tinh_lay === selectedProv);
-    const profileContainer = document.getElementById('prov-profile-content');
-
-    if (provProfile) {
-        document.getElementById('kpi-prov-vol').innerText = formatNum(provProfile.vol);
-        document.getElementById('kpi-prov-odr').innerText = formatPercent(provProfile.pct_odr);
-        document.getElementById('kpi-prov-opr').innerText = formatPercent(provProfile.pct_opr);
-
-        profileContainer.innerHTML = `
-            <div class="profile-item">
-                <span class="profile-label">Vùng Địa Lý</span>
-                <span class="profile-val badge info">${provProfile.vung_lay}</span>
-            </div>
-            <div class="profile-item">
-                <span class="profile-label">Khối Lượng Pick</span>
-                <span class="profile-val">${formatNum(provProfile.kl)} kg</span>
-            </div>
-            <div class="profile-item">
-                <span class="profile-label">Tỉ lệ local route LC</span>
-                <span class="profile-val">${formatPercent(provProfile.pct_rot_lc)}</span>
-            </div>
-            <div class="profile-item">
-                <span class="profile-label">Tỉ lệ hàng Longtail</span>
-                <span class="profile-val badge warning">${formatPercent(provProfile.pct_longtail)}</span>
-            </div>
-        `;
-    } else {
-        profileContainer.innerHTML = '<p class="placeholder-text">Không có thông tin tổng quan tháng này.</p>';
-    }
-
-    // 2. Kết nối (JOIN) Tuyến và Leadtime
-    let matchedRoutes = dbData.route.filter(r => r.thang === selectedThang && r.tuyen.startsWith(selectedProv + " - "));
+function resetSelections() {
+    selectedProv = "";
+    selectedRoute = "";
     
-    let joinedRoutes = matchedRoutes.map(r => {
-        let ltInfo = dbData.lt.find(l => l.thang === selectedThang && l.tuyen === r.tuyen);
+    // Disable steps 2 & 3
+    document.getElementById('section-step2').classList.add('disabled-step');
+    document.getElementById('section-step3').classList.add('disabled-step');
+    
+    document.getElementById('selected-prov-label').innerText = "Chưa Chọn";
+    document.getElementById('shop-prov-label').innerText = "Chưa Chọn";
+    document.getElementById('shop-dest-label').innerText = "Chưa Chọn";
+
+    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="7" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
+    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="10" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+}
+
+function sortData(tabName, key) {
+    if (sortState[tabName].key === key) {
+        sortState[tabName].asc = !sortState[tabName].asc;
+    } else {
+        sortState[tabName].key = key;
+        sortState[tabName].asc = false;
+    }
+
+    if (tabName === 'prov') renderStep1();
+    if (tabName === 'route') renderStep2();
+    if (tabName === 'shop') renderStep3();
+}
+
+function getSortedArr(arr, key, asc) {
+    return [...arr].sort((a, b) => {
+        let valA = a[key] !== undefined ? a[key] : "";
+        let valB = b[key] !== undefined ? b[key] : "";
+        let numA = parseFloat(valA.toString().replace(/,/g, '').replace(/%/g, ''));
+        let numB = parseFloat(valB.toString().replace(/,/g, '').replace(/%/g, ''));
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return asc ? (numA - numB) : (numB - numA);
+        }
+        return asc ? valA.toString().localeCompare(valB.toString()) : valB.toString().localeCompare(valA.toString());
+    });
+}
+
+// Helper to color codes
+function getODRClass(val) {
+    let p = parseFloat(val);
+    if (isNaN(p)) return '';
+    if (p <= 1.0) p = p * 100;
+    if (p < 88.0) return 'hl-cell-red';
+    if (p < 92.0) return 'hl-cell-yellow';
+    return 'hl-cell-green';
+}
+
+function getLongtailClass(val) {
+    let p = parseFloat(val);
+    if (isNaN(p)) return '';
+    if (p <= 1.0) p = p * 100;
+    if (p > 18.0) return 'hl-cell-red';
+    if (p > 15.0) return 'hl-cell-yellow';
+    return 'hl-cell-green';
+}
+
+function getOPRClass(val) {
+    let p = parseFloat(val);
+    if (isNaN(p)) return '';
+    if (p <= 1.0) p = p * 100;
+    if (p < 70.0) return 'hl-cell-red';
+    if (p < 85.0) return 'hl-cell-yellow';
+    return 'hl-cell-green';
+}
+
+// ==================== BƯỚC 1: RENDER TỈNH LẤY ====================
+function renderStep1() {
+    let filtered = dbData.prov.filter(d => d.thang === selectedMonth);
+    let sorted = getSortedArr(filtered, sortState.prov.key, sortState.prov.asc);
+
+    const tbody = document.getElementById('prov-tbody');
+    tbody.innerHTML = '';
+
+    sorted.forEach(d => {
+        let isSelected = (selectedProv === d.tinh_lay) ? 'selected-row' : '';
+        tbody.innerHTML += `
+            <tr class="${isSelected}" onclick="selectProvince('${d.tinh_lay}')">
+                <td>${d.vung_lay}</td>
+                <td style="font-weight: 600;">${d.tinh_lay}</td>
+                <td style="font-weight: 600; color: #60a5fa;">${formatNum(d.vol)}</td>
+                <td>${formatNum(d.kl)}</td>
+                <td class="${getOPRClass(d.pct_opr)}">${formatPercent(d.pct_opr)}</td>
+                <td>${formatPercent(d.pct_rot_lc)}</td>
+                <td class="${getODRClass(d.pct_odr)}">${formatPercent(d.pct_odr)}</td>
+                <td class="${getLongtailClass(d.pct_longtail)}">${formatPercent(d.pct_longtail)}</td>
+            </tr>
+        `;
+    });
+}
+
+function selectProvince(provName) {
+    selectedProv = provName;
+    selectedRoute = "";
+    
+    // Khởi chạy bước 2
+    document.getElementById('section-step2').classList.remove('disabled-step');
+    document.getElementById('section-step3').classList.add('disabled-step');
+    
+    document.getElementById('selected-prov-label').innerText = provName;
+    document.getElementById('shop-prov-label').innerText = provName;
+    document.getElementById('shop-dest-label').innerText = "Chưa Chọn";
+
+    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="10" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+
+    renderStep1(); // Để highlight row được chọn ở bước 1
+    renderStep2();
+}
+
+// ==================== BƯỚC 2: RENDER TUYẾN GIAO ====================
+function renderStep2() {
+    // Lọc tuyến bắt đầu bằng Tỉnh Lấy được chọn
+    let matchedRoutes = dbData.route.filter(r => r.thang === selectedMonth && r.tuyen.startsWith(selectedProv + " - "));
+    
+    // JOIN với dữ liệu Leadtime
+    let joined = matchedRoutes.map(r => {
+        let ltInfo = dbData.lt.find(l => l.thang === selectedMonth && l.tuyen === r.tuyen);
         return {
             ...r,
-            ltInfo: ltInfo || {}
+            lt_tong: ltInfo ? ltInfo.lt_tong : r.Leadtine, // Dùng Leadtime tổng từ sheet lt hoặc Leadtine
+            pct_longtail: r.pct_longtail // Sử dụng longtail từ sheet chi_so_tuyen
         };
     });
 
-    // Tính toán Weighted Average Leadtime
-    let totalVol = 0;
-    let weightedLtSum = 0;
-    joinedRoutes.forEach(r => {
-        let vol = parseFloat(r.vol.toString().replace(/,/g, '')) || 0;
-        let lt = parseFloat(r.ltInfo.lt_tong || r.Leadtine) || 0;
-        if (vol > 0 && lt > 0) {
-            totalVol += vol;
-            weightedLtSum += (lt * vol);
-        }
-    });
-    let avgLtOutbound = totalVol > 0 ? (weightedLtSum / totalVol) : 0;
-    document.getElementById('kpi-prov-leadtime').innerText = avgLtOutbound > 0 ? avgLtOutbound.toFixed(1) + "h" : "--";
+    let sorted = getSortedArr(joined, sortState.route.key, sortState.route.asc);
+    
+    const tbody = document.getElementById('route-tbody');
+    tbody.innerHTML = '';
 
-    // Sort Tuyến
-    let rKey = sortState.route.key;
-    let rAsc = sortState.route.asc;
-    joinedRoutes.sort((a, b) => {
-        let valA = a[rKey] || a.ltInfo[rKey] || 0;
-        let valB = b[rKey] || b.ltInfo[rKey] || 0;
-        let numA = parseFloat(valA.toString().replace(/,/g, '').replace(/%/g, ''));
-        let numB = parseFloat(valB.toString().replace(/,/g, '').replace(/%/g, ''));
-
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return rAsc ? (numA - numB) : (numB - numA);
-        }
-        return rAsc ? valA.toString().localeCompare(valB.toString()) : valB.toString().localeCompare(valA.toString());
-    });
-
-    // Render Bảng Tuyến Giao đã JOIN
-    const routesTbody = document.getElementById('joined-routes-tbody');
-    routesTbody.innerHTML = '';
-
-    if (joinedRoutes.length === 0) {
-        routesTbody.innerHTML = '<tr><td colspan="9" class="placeholder-text">Không tìm thấy tuyến nào xuất phát từ tỉnh này.</td></tr>';
-    } else {
-        joinedRoutes.forEach(r => {
-            let activeClass = (activeRouteFilter === r.tuyen) ? 'active-row' : '';
-            
-            // Cấu trúc phân bổ số KTC đi qua
-            let ktcSplit = `1 KTC: ${formatPercent(r.ltInfo.pct_1ktc || 0)} | 2 KTC: ${formatPercent(r.ltInfo.pct_2ktc || 0)}`;
-
-            routesTbody.innerHTML += `
-                <tr class="clickable ${activeClass}" onclick="selectRoute('${r.tuyen}')">
-                    <td style="font-weight: 600; color: #60a5fa;"><i class="fa-solid fa-arrow-trend-up"></i> ${r.tuyen}</td>
-                    <td style="font-weight: 600;">${formatNum(r.vol)}</td>
-                    <td>${formatPercent(r.pct_opr)}</td>
-                    <td><span class="badge ${parseFloat(r.pct_odr) < 0.85 ? 'danger' : 'success'}">${formatPercent(r.pct_odr)}</span></td>
-                    <td>${formatHours(r.ltInfo.lt_xuat_bclay_nhap_ktc1)}</td>
-                    <td>${formatHours(r.ltInfo.lt_ktc1_ktc2)}</td>
-                    <td>${formatHours(r.ltInfo.lt_ktc_cuoi_nhap_bcgiao)}</td>
-                    <td style="font-weight: 700; color: #10b981;">${formatHours(r.ltInfo.lt_tong || r.Leadtine)}</td>
-                    <td style="font-size: 0.8rem; color: var(--text-muted);">${r["KTC/KCT lấy"]} → ${r["KTC/KCT giao"]} (${ktcSplit})</td>
-                </tr>
-            `;
-        });
+    if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="placeholder-text">Không có tuyến gửi nào xuất phát từ ${selectedProv} trong tháng ${selectedMonth}.</td></tr>`;
+        return;
     }
 
-    // 3. Hiển thị Shops thuộc Tỉnh Lấy và Lọc theo Tuyến kết nối
-    let shopList = dbData.shop.filter(s => s.tinh_lay === selectedProv);
-
-    // Xử lý bộ lọc tuyến (nếu được bấm chọn)
-    const activeBadge = document.getElementById('active-route-filter');
-    if (activeRouteFilter) {
-        activeBadge.style.display = 'flex';
-        document.getElementById('filtered-route-name').innerText = activeRouteFilter;
-        
-        let targetDeliveryProv = activeRouteFilter.split(" - ")[1];
-        let normalizedTarget = normalizeProvName(targetDeliveryProv);
-        
-        shopList = shopList.filter(s => {
-            let normalizedShopTopProv = normalizeProvName(s.top_tinh_giao);
-            return normalizedShopTopProv.includes(normalizedTarget) || normalizedTarget.includes(normalizedShopTopProv);
-        });
-    } else {
-        activeBadge.style.display = 'none';
-    }
-
-    // Sort Shops
-    let sKey = sortState.shop.key;
-    let sAsc = sortState.shop.asc;
-    shopList.sort((a, b) => {
-        let valA = a[sKey] || 0;
-        let valB = b[sKey] || 0;
-        let numA = parseFloat(valA.toString().replace(/,/g, '').replace(/%/g, ''));
-        let numB = parseFloat(valB.toString().replace(/,/g, '').replace(/%/g, ''));
-
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return sAsc ? (numA - numB) : (numB - numA);
-        }
-        return sAsc ? valA.toString().localeCompare(valB.toString()) : valB.toString().localeCompare(valA.toString());
+    sorted.forEach(r => {
+        let isSelected = (selectedRoute === r.tuyen) ? 'selected-row' : '';
+        tbody.innerHTML += `
+            <tr class="${isSelected}" onclick="selectRoute('${r.tuyen}')">
+                <td style="font-weight: 600; color: #60a5fa;"><i class="fa-solid fa-arrow-trend-up"></i> ${r.tuyen}</td>
+                <td style="font-weight: 600;">${formatNum(r.vol)}</td>
+                <td class="${getOPRClass(r.pct_opr)}">${formatPercent(r.pct_opr)}</td>
+                <td class="${getODRClass(r.pct_odr)}">${formatPercent(r.pct_odr)}</td>
+                <td class="${getLongtailClass(r.pct_longtail)}">${formatPercent(r.pct_longtail)}</td>
+                <td style="font-weight: 700; color: #10b981;">${formatHours(r.lt_tong)}</td>
+                <td style="font-size: 0.82rem; color: var(--text-muted);">${r["KTC/KCT lấy"] || "--"} → ${r["KTC/KCT giao"] || "--"}</td>
+            </tr>
+        `;
     });
-
-    // Render Bảng Shop
-    const shopTbody = document.getElementById('shop-tbody');
-    shopTbody.innerHTML = '';
-
-    if (shopList.length === 0) {
-        shopTbody.innerHTML = '<tr><td colspan="9" class="placeholder-text">Không có shop nào hoạt động phù hợp bộ lọc tuyến hiện tại.</td></tr>';
-    } else {
-        shopList.forEach(s => {
-            shopTbody.innerHTML += `
-                <tr>
-                    <td style="font-weight: 600; color: #f8fafc;">${s.ten_kh}</td>
-                    <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name} (ID: ${s.pickwarehouseid})</td>
-                    <td>${s.quan}</td>
-                    <td style="font-weight: 600;">${formatNum(s.tong_vol)}</td>
-                    <td style="color: #60a5fa; font-weight: 500;">${formatNum(s.vol_tb_ngay)}/ngày</td>
-                    <td><span class="badge ${parseFloat(s.pct_odr) < 0.90 ? 'danger' : 'success'}">${formatPercent(s.pct_odr)}</span></td>
-                    <td>${formatPercent(s.pct_opr)}</td>
-                    <td style="font-weight: 600;">${s.top_tinh_giao}</td>
-                    <td>${formatPercent(s.pct_kl_top_tinh_giao)}</td>
-                </tr>
-            `;
-        });
-    }
 }
 
-// Lọc shop khi bấm chọn 1 Tuyến liên quan
 function selectRoute(routeName) {
-    if (activeRouteFilter === routeName) {
-        activeRouteFilter = null; // Bấm lại sẽ clear lọc
-    } else {
-        activeRouteFilter = routeName;
-    }
-    updateDashboard();
+    selectedRoute = routeName;
+
+    // Kích hoạt Bước 3
+    document.getElementById('section-step3').classList.remove('disabled-step');
+    
+    let destProv = routeName.split(" - ")[1];
+    document.getElementById('shop-dest-label').innerText = destProv;
+
+    renderStep2(); // Highlight row ở bước 2
+    renderStep3();
 }
 
-function clearRouteFilter() {
-    activeRouteFilter = null;
-    updateDashboard();
+// ==================== BƯỚC 3: RENDER SHOP TRỌNG ĐIỂM ====================
+function renderStep3() {
+    let destProv = selectedRoute.split(" - ")[1];
+    let normalizedDest = normalizeProv(destProv);
+
+    // Lọc shop:
+    // 1. Thuộc tỉnh lấy được chọn
+    // 2. Có Tỉnh giao nhiều nhất (top_tinh_giao) tương ứng với tỉnh giao của tuyến bị lỗi
+    let filteredShops = dbData.shop.filter(s => {
+        let matchProv = s.tinh_lay === selectedProv;
+        let normalizedShopTop = normalizeProv(s.top_tinh_giao);
+        
+        // Khớp mờ để Hồ Chí Minh và TP Hồ Chí Minh khớp nhau
+        let matchDest = normalizedShopTop.includes(normalizedDest) || normalizedDest.includes(normalizedShopTop);
+        return matchProv && matchDest;
+    });
+
+    let sorted = getSortedArr(filteredShops, sortState.shop.key, sortState.shop.asc);
+
+    const tbody = document.getElementById('shop-tbody');
+    tbody.innerHTML = '';
+
+    if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="placeholder-text">Không có shop nào tại ${selectedProv} gửi đơn nhiều nhất đi ${destProv} trong cơ sở dữ liệu.</td></tr>`;
+        return;
+    }
+
+    sorted.forEach(s => {
+        tbody.innerHTML += `
+            <tr>
+                <td style="font-weight: 600; color: #f8fafc;">${s.ten_kh}</td>
+                <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name} (ID: ${s.pickwarehouseid})</td>
+                <td>${s.quan}</td>
+                <td style="font-weight: 600;">${formatNum(s.tong_vol)}</td>
+                <td style="color: #60a5fa;">${formatNum(s.vol_tb_ngay)}</td>
+                <td style="font-weight: 600; color: #fbbf24;">${formatNum(s.kl_tb_ngay_top_tinh_giao)} kg/ngày</td>
+                <td class="${getODRClass(s.pct_odr)}">${formatPercent(s.pct_odr)}</td>
+                <td class="${getOPRClass(s.pct_opr)}">${formatPercent(s.pct_opr)}</td>
+                <td style="font-weight: 600;">${s.top_tinh_giao}</td>
+                <td>${formatPercent(s.pct_kl_top_tinh_giao)}</td>
+            </tr>
+        `;
+    });
 }
