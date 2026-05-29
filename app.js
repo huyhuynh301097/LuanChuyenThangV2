@@ -209,26 +209,24 @@ function resetSelections() {
     document.getElementById('consolidate-prov-label').innerText = "Chưa Chọn";
     document.getElementById('ktc-giao-name').innerText = "Chưa Chọn";
     document.getElementById('ktc-lay-name').innerText = "Chưa Chọn";
-    document.getElementById('8t-tbody').innerHTML = `<tr><td colspan="8" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
-    document.getElementById('19t-tbody').innerHTML = `<tr><td colspan="3" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
-    document.getElementById('8t-total-kl').innerText = "0 Kg/ngày";
-    document.getElementById('8t-fill-pct').innerText = "0%";
-    document.getElementById('8t-status').innerText = "Chưa Đủ Tải";
-    document.getElementById('8t-status').className = "badge-standard";
-    document.getElementById('8t-route-avg-lt').innerText = "--";
-    document.getElementById('8t-pct-1ktc').innerText = "--";
-    document.getElementById('8t-pct-multi-ktc').innerText = "--";
-    document.getElementById('8t-leadtime-saved').innerText = "0h";
-    document.getElementById('8t-progress-text').innerText = "0 / 8,000 Kg";
-    document.getElementById('8t-progress-bar').style.width = "0%";
+    
+    document.getElementById('8t-fleet-total-kl').innerText = "0 Kg";
+    document.getElementById('8t-fleet-total-trucks').innerText = "0 Xe";
+    document.getElementById('8t-fleet-feasible-trucks').innerText = "0 Xe";
+    document.getElementById('8t-fleet-avg-fill').innerText = "0%";
+    document.getElementById('8t-fleet-leadtime-saved').innerText = "0h";
+    document.getElementById('8t-fleet-progress-text').innerText = "0 / 0 Xe (0%)";
+    document.getElementById('8t-fleet-progress-bar').style.width = "0%";
+    document.getElementById('8t-truck-list-container').innerHTML = `<div class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép xe 8T.</div>`;
 
-    document.getElementById('19t-total-kl').innerText = "0 Kg/ngày";
-    document.getElementById('19t-fill-pct').innerText = "0%";
-    document.getElementById('19t-status').innerText = "Chưa Đủ Tải";
-    document.getElementById('19t-status').className = "badge-standard";
-    document.getElementById('19t-leadtime-saved').innerText = "0h";
-    document.getElementById('19t-progress-text').innerText = "0 / 1,900 Kg";
-    document.getElementById('19t-progress-bar').style.width = "0%";
+    document.getElementById('19t-fleet-total-kl').innerText = "0 Kg";
+    document.getElementById('19t-fleet-total-trucks').innerText = "0 Xe";
+    document.getElementById('19t-fleet-feasible-trucks').innerText = "0 Xe";
+    document.getElementById('19t-fleet-avg-fill').innerText = "0%";
+    document.getElementById('19t-fleet-leadtime-saved').innerText = "0h";
+    document.getElementById('19t-fleet-progress-text').innerText = "0 / 0 Xe (0%)";
+    document.getElementById('19t-fleet-progress-bar').style.width = "0%";
+    document.getElementById('19t-truck-list-container').innerHTML = `<div class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép xe 1.9T.</div>`;
     
     if (trendChartInstance) {
         trendChartInstance.destroy();
@@ -927,6 +925,302 @@ function buildShopTrendChart(shopName, odr, opr) {
 }
 
 // ==================== BƯỚC 4: TÍNH TOÁN GOM GHÉP SHOP TỐI ƯU LOGISTICS ====================
+
+/**
+ * Thuật toán lập phương án gom ghép xe tải luân chuyển theo Bưu cục lấy (Pick Warehouse)
+ * Giới hạn tối đa 2-3 shop/xe. 
+ * Tự động tách shop lớn tự thân đủ tải thành xe riêng.
+ * Gom các shop nhỏ chéo nhau bằng thuật toán Least-Excess để tối đa hóa số xe khả thi.
+ */
+function planTrucks(shops, capacity, weightKey, getVolFn) {
+    let trucks = [];
+    let deployedWeights = {}; // Tên shop -> khối lượng đã gom thành công trên xe khả thi
+    let deployedVols = {};    // Tên shop -> sản lượng đã gom thành công trên xe khả thi
+    
+    // Gom nhóm shop theo Bưu cục lấy (pickwarehouseid hoặc fallback warehouse_name)
+    let poGroups = {};
+    shops.forEach(s => {
+        let poId = s.pickwarehouseid || s.warehouse_name || "MACDINH";
+        let poName = s.warehouse_name || s.pickwarehouseid || "Bưu cục không tên";
+        if (!poGroups[poId]) {
+            poGroups[poId] = {
+                id: poId,
+                name: poName,
+                shops: []
+            };
+        }
+        poGroups[poId].shops.push(s);
+    });
+    
+    // Xử lý gom xe cho từng bưu cục
+    for (let poId in poGroups) {
+        let po = poGroups[poId];
+        let candidates = []; // Các shop nhỏ hoặc phần dư cần gom ghép
+        
+        // 1. Tách các shop lớn tự thân đủ tải (weight >= capacity)
+        po.shops.forEach(s => {
+            let weight = getFloatVal(s[weightKey]);
+            let vol = getVolFn(s);
+            
+            if (weight <= 0) return;
+            
+            if (weight >= capacity) {
+                // Chia thành N xe đầy tải
+                let numFullTrucks = Math.floor(weight / capacity);
+                for (let i = 0; i < numFullTrucks; i++) {
+                    trucks.push({
+                        postOfficeId: po.id,
+                        postOfficeName: po.name,
+                        district: s.quan || "--",
+                        isFeasible: true,
+                        totalWeight: capacity,
+                        totalVolume: vol * (capacity / weight),
+                        capacity: capacity,
+                        shops: [{
+                            ten_kh: s.ten_kh,
+                            quan: s.quan || "--",
+                            vol: vol * (capacity / weight),
+                            kl: capacity,
+                            isRemainder: false
+                        }]
+                    });
+                    
+                    // Ghi nhận sản lượng đã triển khai
+                    deployedWeights[s.ten_kh] = (deployedWeights[s.ten_kh] || 0) + capacity;
+                    deployedVols[s.ten_kh] = (deployedVols[s.ten_kh] || 0) + vol * (capacity / weight);
+                }
+                
+                // Phần dư được đưa vào hàng đợi gom ghép
+                let remainderW = weight % capacity;
+                if (remainderW > 0) {
+                    let remainderV = vol * (remainderW / weight);
+                    candidates.push({
+                        shopRef: s,
+                        ten_kh: s.ten_kh,
+                        quan: s.quan || "--",
+                        weight: remainderW,
+                        volume: remainderV,
+                        isRemainder: true
+                    });
+                }
+            } else {
+                candidates.push({
+                    shopRef: s,
+                    ten_kh: s.ten_kh,
+                    quan: s.quan || "--",
+                    weight: weight,
+                    volume: vol,
+                    isRemainder: false
+                });
+            }
+        });
+        
+        // 2. Gom ghép các shop nhỏ/phần dư (tối đa 3 shop/xe)
+        // Sắp xếp giảm dần theo khối lượng để ưu tiên ghép shop lớn trước
+        candidates.sort((a, b) => b.weight - a.weight);
+        let used = new Set();
+        
+        function buildGroupTruck(indices, isFeasible) {
+            let truckShops = indices.map(idx => {
+                let c = candidates[idx];
+                return {
+                    ten_kh: c.ten_kh,
+                    quan: c.quan,
+                    vol: c.volume,
+                    kl: c.weight,
+                    isRemainder: c.isRemainder
+                };
+            });
+            
+            let totalW = truckShops.reduce((sum, ts) => sum + ts.kl, 0);
+            let totalV = truckShops.reduce((sum, ts) => sum + ts.vol, 0);
+            let districts = [...new Set(truckShops.map(ts => ts.quan).filter(Boolean))].join(", ");
+            
+            trucks.push({
+                postOfficeId: po.id,
+                postOfficeName: po.name,
+                district: districts || "--",
+                isFeasible: isFeasible,
+                totalWeight: totalW,
+                totalVolume: totalV,
+                capacity: capacity,
+                shops: truckShops
+            });
+            
+            indices.forEach(idx => used.add(idx));
+            
+            if (isFeasible) {
+                truckShops.forEach(ts => {
+                    deployedWeights[ts.ten_kh] = (deployedWeights[ts.ten_kh] || 0) + ts.kl;
+                    deployedVols[ts.ten_kh] = (deployedVols[ts.ten_kh] || 0) + ts.vol;
+                });
+            }
+        }
+        
+        // Thử ghép các cặp (2 shop) hoặc bộ ba (3 shop) đạt đủ tải trọng xe (>= capacity)
+        for (let i = 0; i < candidates.length; i++) {
+            if (used.has(i)) continue;
+            
+            // Tìm shop j tốt nhất để ghép cặp (2 shop)
+            let bestJ = -1;
+            let minExcessPair = Infinity;
+            for (let j = i + 1; j < candidates.length; j++) {
+                if (used.has(j)) continue;
+                let sum = candidates[i].weight + candidates[j].weight;
+                if (sum >= capacity) {
+                    let excess = sum - capacity;
+                    if (excess < minExcessPair) {
+                        minExcessPair = excess;
+                        bestJ = j;
+                    }
+                }
+            }
+            
+            if (bestJ !== -1) {
+                buildGroupTruck([i, bestJ], true);
+                continue;
+            }
+            
+            // Tìm cặp (j, k) tốt nhất để ghép bộ ba (3 shop)
+            let bestJK = null;
+            let minExcessTriplet = Infinity;
+            for (let j = i + 1; j < candidates.length; j++) {
+                if (used.has(j)) continue;
+                for (let k = j + 1; k < candidates.length; k++) {
+                    if (used.has(k)) continue;
+                    let sum = candidates[i].weight + candidates[j].weight + candidates[k].weight;
+                    if (sum >= capacity) {
+                        let excess = sum - capacity;
+                        if (excess < minExcessTriplet) {
+                            minExcessTriplet = excess;
+                            bestJK = [j, k];
+                        }
+                    }
+                }
+            }
+            
+            if (bestJK !== null) {
+                buildGroupTruck([i, bestJK[0], bestJK[1]], true);
+                continue;
+            }
+        }
+        
+        // 3. Gom nhóm tất cả các shop còn lại chưa đủ tải trọng (Chờ tăng trưởng)
+        // Mỗi xe gom tối đa 3 shop trong cùng bưu cục
+        for (let i = 0; i < candidates.length; i++) {
+            if (used.has(i)) continue;
+            
+            let indices = [i];
+            for (let j = i + 1; j < candidates.length && indices.length < 3; j++) {
+                if (!used.has(j)) {
+                    indices.push(j);
+                }
+            }
+            
+            buildGroupTruck(indices, false);
+        }
+    }
+    
+    return { trucks, deployedWeights, deployedVols };
+}
+
+/**
+ * Render danh sách xe ghép tải luân chuyển dưới dạng các Fleet Cards
+ */
+function renderFleet(containerId, trucks, capacity, modelNum) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    
+    if (trucks.length === 0) {
+        container.innerHTML = `<div class="placeholder-text">Không có xe luân chuyển nào được thiết lập. Chọn một Tuyến ở bảng Bước 2 để tính toán.</div>`;
+        return;
+    }
+    
+    trucks.forEach((truck, index) => {
+        let isFeasible = truck.isFeasible;
+        let cardClass = isFeasible ? "feasible" : "potential";
+        let badgeClass = isFeasible ? "badge-direct" : "badge-group";
+        let badgeText = isFeasible ? `Khả Thi (Đủ xe ${modelNum === 1 ? '8T' : '1.9T'})` : "Chờ Tăng Trưởng";
+        
+        let fillPct = Math.min(100, (truck.totalWeight / capacity) * 100);
+        
+        let growthHtml = "";
+        if (!isFeasible) {
+            let gap = capacity - truck.totalWeight;
+            let growthWeightPct = (gap / truck.totalWeight) * 100;
+            if (truck.totalWeight <= 0) growthWeightPct = 100;
+            
+            // Tính số đơn tương đương dựa trên trọng lượng đơn trung bình của xe
+            let avgWeightPerParcel = 1.8; // Fallback mặc định
+            if (truck.totalVolume > 0 && truck.totalWeight > 0) {
+                avgWeightPerParcel = truck.totalWeight / truck.totalVolume;
+            }
+            let additionalVol = gap / avgWeightPerParcel;
+            
+            growthHtml = `
+                <div class="truck-growth-card">
+                    <i class="fa-solid fa-chart-line-up"></i>
+                    <div>
+                        <strong>Khuyến nghị tăng trưởng:</strong> Cần tăng thêm <strong>+${Math.round(gap).toLocaleString('vi-VN')} Kg</strong> 
+                        (+${Math.round(growthWeightPct)}% khối lượng, tương đương khoảng <strong>+${Math.round(additionalVol).toLocaleString('vi-VN')} đơn/ngày</strong>) 
+                        để đạt tải trọng chuẩn của xe ${modelNum === 1 ? '8T' : '1.9T'} và triển khai Mô hình ${modelNum}.
+                    </div>
+                </div>
+            `;
+        }
+        
+        let shopsRows = "";
+        truck.shops.sort((a, b) => b.kl - a.kl).forEach(s => {
+            let labelRemainder = s.isRemainder ? " <span style='font-size:0.68rem;color:#a855f7;font-style:italic;'>[Phần dư]</span>" : "";
+            shopsRows += `
+                <tr>
+                    <td class="shop-name-cell">${s.ten_kh}${labelRemainder}</td>
+                    <td>${s.quan || "--"}</td>
+                    <td>${formatNum(Math.round(s.vol))} đơn/ngày</td>
+                    <td class="shop-highlight-cell">${formatNum(Math.round(s.kl))} Kg</td>
+                </tr>
+            `;
+        });
+        
+        let iconName = modelNum === 1 ? "fa-truck-moving" : "fa-truck";
+        
+        container.innerHTML += `
+            <div class="truck-card ${cardClass}">
+                <div class="truck-card-header">
+                    <div class="truck-card-title">
+                        <i class="fa-solid ${iconName}"></i>
+                        <span>Xe #${index + 1} - Bưu cục: <strong>${truck.postOfficeName}</strong></span>
+                    </div>
+                    <div class="${badgeClass}">${badgeText}</div>
+                </div>
+                
+                <div class="truck-fill-row">
+                    <div class="truck-fill-track">
+                        <div class="truck-fill-bar" style="width: ${fillPct}%"></div>
+                    </div>
+                    <div class="truck-fill-text">${Math.round(truck.totalWeight).toLocaleString('vi-VN')} / ${capacity.toLocaleString('vi-VN')} Kg (${fillPct.toFixed(1)}%)</div>
+                </div>
+                
+                ${growthHtml}
+                
+                <table class="truck-shops-table">
+                    <thead>
+                        <tr>
+                            <th>Tên Shop</th>
+                            <th>Quận/Huyện</th>
+                            <th>Sản lượng</th>
+                            <th>Khối lượng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${shopsRows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    });
+}
+
 function calculateConsolidation(routeName) {
     let currentRouteData = dbData.route.find(r => r.thang === selectedMonth && r.tuyen === routeName);
     let ltInfo = dbData.lt.find(l => l.thang === selectedMonth && l.tuyen === routeName);
@@ -947,8 +1241,9 @@ function calculateConsolidation(routeName) {
         return matchProv && matchMonth;
     });
     
-    // 1. Luồng 1: Gom Đầu Giao Xe 8T (Yêu cầu 8,000 Kg)
-    // Gom các shop có KTC giao trùng với KTC giao của tuyến đang chọn
+    // ----------------------------------------------------
+    // MÔ HÌNH 1: LUÂN CHUYỂN THẲNG XE 8T (Capacity: 8,000 Kg)
+    // ----------------------------------------------------
     let shops8T = allShopsInProv.filter(s => {
         let normalizedTop = normalizeProv(s.top_tinh_giao);
         let shopRouteData = dbData.route.find(r => {
@@ -961,14 +1256,8 @@ function calculateConsolidation(routeName) {
         return shopKtcGiao && shopKtcGiao === ktcGiao;
     });
     
-    // 2. Luồng 2: Gom Đầu Lấy Xe 1.9T (Yêu cầu 1,900 Kg)
-    // Gom tất cả các shop tại tỉnh lấy
-    let shops19T = allShopsInProv;
-    
-    // TÍNH TOÁN LUỒNG 1 (XE 8T) - kl_tb_ngay_top_tinh_giao
-    let totalVol8T = 0;
-    let totalKl8T = 0;
-    shops8T.forEach(s => {
+    // Hàm tính Volume riêng cho chặng đi tỉnh giao top của shop ở mô hình 1
+    let getVolModel1 = s => {
         let pct = getFloatVal(s.pct_kl_top_tinh_giao);
         if (pct <= 0) {
             let tKl = getFloatVal(s.tong_kl);
@@ -976,15 +1265,11 @@ function calculateConsolidation(routeName) {
             if (tKl > 0) pct = (topKl / tKl) * 100;
         }
         if (pct <= 0) pct = 100;
-        let volTopGiao = getFloatVal(s.vol_tb_ngay) * (pct / 100);
-        
-        totalVol8T += volTopGiao;
-        totalKl8T += getFloatVal(s.kl_tb_ngay_top_tinh_giao);
-    });
+        return getFloatVal(s.vol_tb_ngay) * (pct / 100);
+    };
     
-    let fillPct8T = Math.min(100, (totalKl8T / 8000) * 100);
-    let status8T = totalKl8T >= 8000 ? "KHẢ THI (Đủ tải xe 8T)" : `CHƯA ĐỦ TẢI (-${(8000 - totalKl8T).toFixed(0)} Kg)`;
-    let badgeClass8T = totalKl8T >= 8000 ? "badge-direct" : "badge-standard";
+    // Lập phương án xe tải Mô hình 1 (Xe 8T)
+    let result8T = planTrucks(shops8T, 8000, "kl_tb_ngay_top_tinh_giao", getVolModel1);
     
     // Tiết kiệm Leadtime xe 8T: Bypass KTC Lấy, tiết kiệm chặng lt_ktc1_ktc2
     let ltSaved8T = 0;
@@ -995,79 +1280,32 @@ function calculateConsolidation(routeName) {
     }
     if (isNaN(ltSaved8T)) ltSaved8T = 0;
     
-    // Tính toán chỉ số cho các scorecards mới ở Mô hình 1
-    let avgLtStr = "--";
-    let pct1KtcStr = "--";
-    let pctMultiKtcStr = "--";
-    
-    if (ltInfo) {
-        avgLtStr = formatHours(ltInfo.lt_tong);
-        pct1KtcStr = formatPercent(ltInfo.pct_1ktc);
+    // ----------------------------------------------------
+    // MÔ HÌNH 2: LUÂN CHUYỂN THẲNG XE 1.9T (Capacity: 1,900 Kg)
+    // ----------------------------------------------------
+    // Khấu trừ chéo sản lượng đã phân bổ thành công ở Mô hình 1 trước khi đưa vào Mô hình 2
+    let shops19TCandidates = allShopsInProv.map(s => {
+        let originalWeight = getFloatVal(s.kl_tb_ngay);
+        let originalVol = getFloatVal(s.vol_tb_ngay);
         
-        let p1 = getFloatVal(ltInfo.pct_1ktc);
-        let p2 = getFloatVal(ltInfo.pct_2ktc);
-        let p3 = getFloatVal(ltInfo.pct_3ktc);
-        let p4 = getFloatVal(ltInfo.pct_4plus_ktc);
-        let pMulti = p2 + p3 + p4;
+        // Khối lượng & sản lượng đã gom vào XE KHẢ THI ở Mô hình 1
+        let deployedWeight = result8T.deployedWeights[s.ten_kh] || 0;
+        let deployedVol = result8T.deployedVols[s.ten_kh] || 0;
         
-        pctMultiKtcStr = formatPercent(pMulti);
-    } else if (currentRouteData) {
-        avgLtStr = formatHours(currentRouteData.Leadtine);
-    }
+        let availWeight = Math.max(0, originalWeight - deployedWeight);
+        let availVol = Math.max(0, originalVol - deployedVol);
+        
+        return {
+            ...s,
+            kl_tb_ngay: availWeight,
+            vol_tb_ngay: availVol
+        };
+    }).filter(s => s.kl_tb_ngay > 0); // Chỉ giữ lại các shop còn khối lượng khả dụng
     
-    document.getElementById('8t-route-avg-lt').innerText = avgLtStr;
-    document.getElementById('8t-pct-1ktc').innerText = pct1KtcStr;
-    document.getElementById('8t-pct-multi-ktc').innerText = pctMultiKtcStr;
+    let getVolModel2 = s => getFloatVal(s.vol_tb_ngay);
     
-    document.getElementById('8t-total-kl').innerText = totalKl8T.toLocaleString('vi-VN') + " Kg/ngày";
-    document.getElementById('8t-fill-pct').innerText = fillPct8T.toFixed(1) + "%";
-    document.getElementById('8t-status').innerText = status8T;
-    document.getElementById('8t-status').className = badgeClass8T;
-    document.getElementById('8t-leadtime-saved').innerHTML = ltSaved8T > 0 ? `<i class="fa-solid fa-circle-down"></i> Giảm ${ltSaved8T.toFixed(1)}h` : "--";
-    document.getElementById('8t-progress-text').innerText = `${totalKl8T.toLocaleString('vi-VN')} / 8,000 Kg`;
-    document.getElementById('8t-progress-bar').style.width = fillPct8T + "%";
-    
-    const tbody8T = document.getElementById('8t-tbody');
-    tbody8T.innerHTML = "";
-    if (shops8T.length === 0) {
-        tbody8T.innerHTML = `<tr><td colspan="8" class="placeholder-text">Không có shop nào có cùng KTC Giao.</td></tr>`;
-    } else {
-        shops8T.sort((a,b) => getFloatVal(b.kl_tb_ngay_top_tinh_giao) - getFloatVal(a.kl_tb_ngay_top_tinh_giao));
-        shops8T.forEach(s => {
-            let pct = getFloatVal(s.pct_kl_top_tinh_giao);
-            if (pct <= 0) {
-                let tKl = getFloatVal(s.tong_kl);
-                let topKl = getFloatVal(s.kl_top_tinh_giao);
-                if (tKl > 0) pct = (topKl / tKl) * 100;
-            }
-            if (pct <= 0) pct = 100;
-            let volTopGiao = getFloatVal(s.vol_tb_ngay) * (pct / 100);
-            tbody8T.innerHTML += `
-                <tr>
-                    <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
-                    <td style="font-size: 0.8rem; color: var(--text-muted);">${s.warehouse_name || "--"}</td>
-                    <td>${s.quan || "--"}</td>
-                    <td>${formatNum(volTopGiao.toFixed(1))}</td>
-                    <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay_top_tinh_giao)} Kg</td>
-                    <td class="${getOPRClass(s.pct_opr)}">${formatPercent(s.pct_opr)}</td>
-                    <td class="${getODRClass(s.pct_odr)}">${formatPercent(s.pct_odr)}</td>
-                    <td>${s.top_tinh_giao}</td>
-                </tr>
-            `;
-        });
-    }
-    
-    // TÍNH TOÁN LUỒNG 2 (XE 1.9T) - kl_tb_ngay
-    let totalVol19T = 0;
-    let totalKl19T = 0;
-    shops19T.forEach(s => {
-        totalVol19T += getFloatVal(s.vol_tb_ngay);
-        totalKl19T += getFloatVal(s.kl_tb_ngay);
-    });
-    
-    let fillPct19T = Math.min(100, (totalKl19T / 1900) * 100);
-    let status19T = totalKl19T >= 1900 ? "KHẢ THI (Đủ tải)" : `CHƯA ĐỦ TẢI (-${(1900 - totalKl19T).toFixed(0)} Kg)`;
-    let badgeClass19T = totalKl19T >= 1900 ? "badge-direct" : "badge-standard";
+    // Lập phương án xe tải Mô hình 2 (Xe 1.9T) dựa trên dữ liệu đã khấu trừ
+    let result19T = planTrucks(shops19TCandidates, 1900, "kl_tb_ngay", getVolModel2);
     
     // Tiết kiệm Leadtime xe 1.9T: Đi thẳng trung chuyển chặng lt_xuat_bclay_nhap_ktc1
     let ltSaved19T = 0;
@@ -1078,28 +1316,45 @@ function calculateConsolidation(routeName) {
     }
     if (isNaN(ltSaved19T)) ltSaved19T = 0;
     
-    document.getElementById('19t-total-kl').innerText = totalKl19T.toLocaleString('vi-VN') + " Kg/ngày";
-    document.getElementById('19t-fill-pct').innerText = fillPct19T.toFixed(1) + "%";
-    document.getElementById('19t-status').innerText = status19T;
-    document.getElementById('19t-status').className = badgeClass19T;
-    document.getElementById('19t-leadtime-saved').innerHTML = ltSaved19T > 0 ? `<i class="fa-solid fa-circle-down"></i> Giảm ${ltSaved19T.toFixed(1)}h` : "--";
-    document.getElementById('19t-progress-text').innerText = `${totalKl19T.toLocaleString('vi-VN')} / 1,900 Kg`;
-    document.getElementById('19t-progress-bar').style.width = fillPct19T + "%";
+    // ----------------------------------------------------
+    // CẬP NHẬT GIAO DIỆN & VẼ THẺ XE CHO CẢ 2 MÔ HÌNH
+    // ----------------------------------------------------
     
-    const tbody19T = document.getElementById('19t-tbody');
-    tbody19T.innerHTML = "";
-    if (shops19T.length === 0) {
-        tbody19T.innerHTML = `<tr><td colspan="3" class="placeholder-text">Không có shop nào tại Tỉnh Lấy.</td></tr>`;
-    } else {
-        shops19T.sort((a,b) => getFloatVal(b.kl_tb_ngay) - getFloatVal(a.kl_tb_ngay));
-        shops19T.forEach(s => {
-            tbody19T.innerHTML += `
-                <tr>
-                    <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
-                    <td>${formatNum(s.vol_tb_ngay)}</td>
-                    <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay)} Kg</td>
-                </tr>
-            `;
-        });
-    }
+    // 1. Cập nhật Mô hình 1 (Xe 8T)
+    let totalKl8T = result8T.trucks.reduce((sum, t) => sum + t.totalWeight, 0);
+    let totalTrucks8T = result8T.trucks.length;
+    let feasibleTrucks8T = result8T.trucks.filter(t => t.isFeasible).length;
+    let avgFill8T = totalTrucks8T > 0 ? (result8T.trucks.reduce((sum, t) => sum + (t.totalWeight / t.capacity) * 100, 0) / totalTrucks8T) : 0;
+    
+    document.getElementById('8t-fleet-total-kl').innerText = Math.round(totalKl8T).toLocaleString('vi-VN') + " Kg";
+    document.getElementById('8t-fleet-total-trucks').innerText = totalTrucks8T + " Xe";
+    document.getElementById('8t-fleet-feasible-trucks').innerText = feasibleTrucks8T + " Xe";
+    document.getElementById('8t-fleet-avg-fill').innerText = avgFill8T.toFixed(1) + "%";
+    document.getElementById('8t-fleet-leadtime-saved').innerHTML = ltSaved8T > 0 ? `<i class="fa-solid fa-circle-down"></i> Giảm ${ltSaved8T.toFixed(1)}h` : "--";
+    
+    let pctFeasible8T = totalTrucks8T > 0 ? (feasibleTrucks8T / totalTrucks8T) * 100 : 0;
+    document.getElementById('8t-fleet-progress-text').innerText = `${feasibleTrucks8T} / ${totalTrucks8T} Xe (${pctFeasible8T.toFixed(0)}% khả thi)`;
+    document.getElementById('8t-fleet-progress-bar').style.width = pctFeasible8T + "%";
+    
+    // Vẽ danh sách thẻ xe 8T
+    renderFleet('8t-truck-list-container', result8T.trucks, 8000, 1);
+    
+    // 2. Cập nhật Mô hình 2 (Xe 1.9T)
+    let totalKl19T = result19T.trucks.reduce((sum, t) => sum + t.totalWeight, 0);
+    let totalTrucks19T = result19T.trucks.length;
+    let feasibleTrucks19T = result19T.trucks.filter(t => t.isFeasible).length;
+    let avgFill19T = totalTrucks19T > 0 ? (result19T.trucks.reduce((sum, t) => sum + (t.totalWeight / t.capacity) * 100, 0) / totalTrucks19T) : 0;
+    
+    document.getElementById('19t-fleet-total-kl').innerText = Math.round(totalKl19T).toLocaleString('vi-VN') + " Kg";
+    document.getElementById('19t-fleet-total-trucks').innerText = totalTrucks19T + " Xe";
+    document.getElementById('19t-fleet-feasible-trucks').innerText = feasibleTrucks19T + " Xe";
+    document.getElementById('19t-fleet-avg-fill').innerText = avgFill19T.toFixed(1) + "%";
+    document.getElementById('19t-fleet-leadtime-saved').innerHTML = ltSaved19T > 0 ? `<i class="fa-solid fa-circle-down"></i> Giảm ${ltSaved19T.toFixed(1)}h` : "--";
+    
+    let pctFeasible19T = totalTrucks19T > 0 ? (feasibleTrucks19T / totalTrucks19T) * 100 : 0;
+    document.getElementById('19t-fleet-progress-text').innerText = `${feasibleTrucks19T} / ${totalTrucks19T} Xe (${pctFeasible19T.toFixed(0)}% khả thi)`;
+    document.getElementById('19t-fleet-progress-bar').style.width = pctFeasible19T + "%";
+    
+    // Vẽ danh sách thẻ xe 1.9T
+    renderFleet('19t-truck-list-container', result19T.trucks, 1900, 2);
 }

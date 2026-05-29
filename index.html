@@ -187,66 +187,44 @@
                             <p>Yêu cầu: Gom đủ tải trọng xe tải 8T (8,000 Kg) cùng cụm KTC Đầu Giao: <strong id="ktc-giao-name" class="text-purple">Chưa Chọn</strong></p>
                         </div>
                         
-                        <div class="kpi-minigrid">
-                            <div class="kpi-mini-box">
-                                <span>Tổng Khối Lượng Gom</span>
-                                <h3 id="8t-total-kl">0 Kg</h3>
+                        <!-- Fleet Dashboard KPIs -->
+                        <div class="fleet-summary-grid">
+                            <div class="fleet-kpi-box">
+                                <span>Tổng KL Gom</span>
+                                <h4 id="8t-fleet-total-kl">0 Kg</h4>
                             </div>
-                            <div class="kpi-mini-box">
-                                <span>Tỷ Lệ Lấp Đầy</span>
-                                <h3 id="8t-fill-pct">0%</h3>
+                            <div class="fleet-kpi-box">
+                                <span>Tổng Số Xe</span>
+                                <h4 id="8t-fleet-total-trucks">0 Xe</h4>
                             </div>
-                            <div class="kpi-mini-box">
-                                <span>Trạng Thái Vận Hành</span>
-                                <span id="8t-status" class="badge-standard">Chưa Đủ Tải</span>
+                            <div class="fleet-kpi-box">
+                                <span>Xe Khả Thi</span>
+                                <h4 id="8t-fleet-feasible-trucks" class="text-purple">0 Xe</h4>
                             </div>
-                            <div class="kpi-mini-box">
-                                <span>Leadtime Tổng TB</span>
-                                <h3 id="8t-route-avg-lt" class="text-purple">--</h3>
+                            <div class="fleet-kpi-box">
+                                <span>% Lấp Đầy TB</span>
+                                <h4 id="8t-fleet-avg-fill">0%</h4>
                             </div>
-                            <div class="kpi-mini-box">
-                                <span>Tỷ Lệ Qua 1 KTC</span>
-                                <h3 id="8t-pct-1ktc" class="text-purple">--</h3>
-                            </div>
-                            <div class="kpi-mini-box">
-                                <span>Tỷ Lệ Qua >1 Kho TC</span>
-                                <h3 id="8t-pct-multi-ktc" class="text-purple">--</h3>
-                            </div>
-                            <div class="kpi-mini-box">
-                                <span>KTC Trung Gian</span>
-                                <h3 class="text-green"><i class="fa-solid fa-circle-down"></i> Giảm 1 KTC</h3>
-                            </div>
-                            <div class="kpi-mini-box double-width">
-                                <span>Leadtime Tiết Kiệm Dự Kiến (Bypass KTC Lấy)</span>
-                                <h3 id="8t-leadtime-saved" class="text-green">0h</h3>
+                            <div class="fleet-kpi-box">
+                                <span>Bypass KTC Lấy</span>
+                                <h4 id="8t-fleet-leadtime-saved" class="text-green">0h</h4>
                             </div>
                         </div>
 
-                        <div class="progress-container">
-                            <div class="progress-bar-label">Tiến Độ Lấp Đầy Tải Xe 8T: <span id="8t-progress-text">0 / 8,000 Kg</span></div>
-                            <div class="progress-bar-track">
-                                <div id="8t-progress-bar" class="progress-bar-fill bg-purple" style="width: 0%"></div>
+                        <!-- Fleet Progress Bar -->
+                        <div class="fleet-progress-wrapper">
+                            <div class="fleet-progress-label">
+                                <span>Tiến độ đội xe khả thi (Xe đủ tải 8T)</span>
+                                <span id="8t-fleet-progress-text">0 / 0 Xe (0%)</span>
+                            </div>
+                            <div class="fleet-progress-track">
+                                <div id="8t-fleet-progress-bar" class="fleet-progress-fill bg-purple" style="width: 0%"></div>
                             </div>
                         </div>
 
-                        <div class="table-scroll-container limit-consolidation">
-                            <table class="data-table small-table">
-                                <thead>
-                                    <tr>
-                                        <th>Tên Doanh Nghiệp (Shop)</th>
-                                        <th>Tên Kho Gửi</th>
-                                        <th>Quận/Huyện</th>
-                                        <th>Vol TB/Ngày (Tỉnh Giao Top)</th>
-                                        <th>KL đi Tỉnh Top (Kg/ngày)</th>
-                                        <th>%OPR</th>
-                                        <th>%ODR</th>
-                                        <th>Tỉnh Giao Top</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="8t-tbody">
-                                    <tr><td colspan="8" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>
-                                </tbody>
-                            </table>
+                        <!-- Truck List (Dynamic Fleet) -->
+                        <div class="truck-list" id="8t-truck-list-container">
+                            <div class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép xe 8T.</div>
                         </div>
                     </div>
 
@@ -258,49 +236,44 @@
                             <p>Yêu cầu: Gom đủ tải trọng xe tải 1.9T (1,900 Kg) về KTC Đầu Lấy: <strong id="ktc-lay-name" class="text-blue">Chưa Chọn</strong> (Gom chung nhiều tỉnh lẻ)</p>
                         </div>
                         
-                        <div class="kpi-minigrid compact-grid">
-                            <div class="kpi-mini-box">
-                                <span>Tổng Khối Lượng Gom</span>
-                                <h3 id="19t-total-kl">0 Kg</h3>
+                        <!-- Fleet Dashboard KPIs -->
+                        <div class="fleet-summary-grid">
+                            <div class="fleet-kpi-box">
+                                <span>Tổng KL Gom</span>
+                                <h4 id="19t-fleet-total-kl">0 Kg</h4>
                             </div>
-                            <div class="kpi-mini-box">
-                                <span>Tỷ Lệ Lấp Đầy</span>
-                                <h3 id="19t-fill-pct">0%</h3>
+                            <div class="fleet-kpi-box">
+                                <span>Tổng Số Xe</span>
+                                <h4 id="19t-fleet-total-trucks">0 Xe</h4>
                             </div>
-                            <div class="kpi-mini-box span-2">
-                                <span>Trạng Thái Vận Hành</span>
-                                <div><span id="19t-status" class="badge-standard">Chưa Đủ Tải</span></div>
+                            <div class="fleet-kpi-box">
+                                <span>Xe Khả Thi</span>
+                                <h4 id="19t-fleet-feasible-trucks" class="text-blue">0 Xe</h4>
                             </div>
-                            <div class="kpi-mini-box">
-                                <span>KTC Trung Gian</span>
-                                <h3 class="text-blue">Gom Hub Lấy</h3>
+                            <div class="fleet-kpi-box">
+                                <span>% Lấp Đầy TB</span>
+                                <h4 id="19t-fleet-avg-fill">0%</h4>
                             </div>
-                            <div class="kpi-mini-box">
-                                <span>Leadtime Tiết Kiệm Dự Kiến (Trung chuyển Nội Tỉnh)</span>
-                                <h3 id="19t-leadtime-saved" class="text-blue">0h</h3>
-                            </div>
-                        </div>
-
-                        <div class="progress-container">
-                            <div class="progress-bar-label">Tiến Độ Lấp Đầy Tải Xe 1.9T: <span id="19t-progress-text">0 / 1,900 Kg</span></div>
-                            <div class="progress-bar-track">
-                                <div id="19t-progress-bar" class="progress-bar-fill bg-blue" style="width: 0%"></div>
+                            <div class="fleet-kpi-box">
+                                <span>Bypass KTC Lấy</span>
+                                <h4 id="19t-fleet-leadtime-saved" class="text-blue">0h</h4>
                             </div>
                         </div>
 
-                        <div class="table-scroll-container limit-consolidation">
-                            <table class="data-table small-table">
-                                <thead>
-                                    <tr>
-                                        <th>Tên Doanh Nghiệp (Shop)</th>
-                                        <th>Vol TB/Ngày</th>
-                                        <th>Tổng KL (Kg/ngày)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="19t-tbody">
-                                    <tr><td colspan="3" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>
-                                </tbody>
-                            </table>
+                        <!-- Fleet Progress Bar -->
+                        <div class="fleet-progress-wrapper">
+                            <div class="fleet-progress-label">
+                                <span>Tiến độ đội xe khả thi (Xe đủ tải 1.9T)</span>
+                                <span id="19t-fleet-progress-text">0 / 0 Xe (0%)</span>
+                            </div>
+                            <div class="fleet-progress-track">
+                                <div id="19t-fleet-progress-bar" class="fleet-progress-fill bg-blue" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Truck List (Dynamic Fleet) -->
+                        <div class="truck-list" id="19t-truck-list-container">
+                            <div class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép xe 1.9T.</div>
                         </div>
                     </div>
                 </div>
