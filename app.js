@@ -1,3 +1,6 @@
+// Đăng ký Plugin DataLabels cho Chart.js toàn cục
+Chart.register(ChartDataLabels);
+
 // URLs kết nối trực tiếp đến Google Sheets (xuất định dạng CSV)
 const sheetUrls = {
     prov: "https://docs.google.com/spreadsheets/d/1EFsJvtmSFpgVHs_dexmFJ73qygRBM6vlV2X3d0BhKfk/gviz/tq?tqx=out:csv&sheet=chi_so_tinh",
@@ -205,8 +208,8 @@ function resetSelections() {
     document.getElementById('trend-route-label').innerText = "Chưa Chọn";
     document.getElementById('trend-shop-label').innerText = "Chưa Chọn";
 
-    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="15" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
-    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="20" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="17" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
+    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="21" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
     
     if (trendChartInstance) {
         trendChartInstance.destroy();
@@ -325,6 +328,23 @@ function renderStep2() {
     
     let joined = matchedRoutes.map(r => {
         let ltInfo = dbData.lt.find(l => l.thang === selectedMonth && l.tuyen === r.tuyen);
+        let vol = parseFloat(r.vol.toString().replace(/,/g, ''));
+        let ktc_lay = r["KTC/KCT lấy"] || "";
+        let ktc_giao = r["KTC/KCT giao"] || "";
+        
+        let de_xuat = "";
+        if (!ktc_lay || !ktc_giao) {
+            de_xuat = "Chưa rõ luồng";
+        } else if (ktc_lay === ktc_giao) {
+            de_xuat = "Gom tại KTC Lấy";
+        } else {
+            if (vol > 500) {
+                de_xuat = "Luân chuyển thẳng KTC Giao";
+            } else {
+                de_xuat = "Gom nhóm ghép xe";
+            }
+        }
+
         return {
             ...r,
             lt_tong: ltInfo ? ltInfo.lt_tong : r.Leadtine,
@@ -335,7 +355,10 @@ function renderStep2() {
             lt_xuat_bclay_nhap_ktc1: ltInfo ? ltInfo.lt_xuat_bclay_nhap_ktc1 : "",
             lt_ktc1_ktc2: ltInfo ? ltInfo.lt_ktc1_ktc2 : "",
             lt_ktc2_ktc3: ltInfo ? ltInfo.lt_ktc2_ktc3 : "",
-            lt_ktc_cuoi_nhap_bcgiao: ltInfo ? ltInfo.lt_ktc_cuoi_nhap_bcgiao : ""
+            lt_ktc_cuoi_nhap_bcgiao: ltInfo ? ltInfo.lt_ktc_cuoi_nhap_bcgiao : "",
+            ktc_lay: ktc_lay,
+            ktc_giao: ktc_giao,
+            de_xuat: de_xuat
         };
     });
 
@@ -345,12 +368,16 @@ function renderStep2() {
     tbody.innerHTML = '';
 
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="15" class="placeholder-text">Không có tuyến gửi nào xuất phát từ ${selectedProv} trong tháng ${selectedMonth}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="17" class="placeholder-text">Không có tuyến gửi nào xuất phát từ ${selectedProv} trong tháng ${selectedMonth}.</td></tr>`;
         return;
     }
 
     sorted.forEach(r => {
         let isSelected = (selectedRoute === r.tuyen) ? 'selected-row' : '';
+        let badgeClass = "badge-standard";
+        if (r.de_xuat === "Luân chuyển thẳng KTC Giao") badgeClass = "badge-direct";
+        if (r.de_xuat === "Gom nhóm ghép xe") badgeClass = "badge-group";
+
         tbody.innerHTML += `
             <tr class="${isSelected}" onclick="selectRoute('${r.tuyen}')">
                 <td style="font-weight: 600; color: var(--accent-color);">${r.tuyen}</td>
@@ -367,7 +394,9 @@ function renderStep2() {
                 <td>${formatHours(r.lt_ktc1_ktc2)}</td>
                 <td>${formatHours(r.lt_ktc2_ktc3)}</td>
                 <td>${formatHours(r.lt_ktc_cuoi_nhap_bcgiao)}</td>
-                <td style="font-size: 0.82rem; color: var(--text-muted);">${r["KTC/KCT lấy"] || "--"} → ${r["KTC/KCT giao"] || "--"}</td>
+                <td style="font-weight: 500; color: #0369a1;">${r.ktc_lay || "--"}</td>
+                <td style="font-weight: 500; color: #6b21a8;">${r.ktc_giao || "--"}</td>
+                <td><span class="${badgeClass}">${r.de_xuat}</span></td>
             </tr>
         `;
     });
@@ -405,20 +434,44 @@ function renderStep3() {
         return matchProv && matchDest;
     });
 
-    let sorted = getSortedArr(filteredShops, sortState.shop.key, sortState.shop.asc);
+    let mappedShops = filteredShops.map(s => {
+        let volTb = parseFloat(s.vol_tb_ngay.toString().replace(/,/g, ''));
+        let klTb = parseFloat(s.kl_tb_ngay.toString().replace(/,/g, ''));
+        
+        let de_xuat = "";
+        if (volTb > 800 || klTb > 3000) {
+            de_xuat = "Luân chuyển thẳng KTC Giao";
+        } else if (volTb > 300 || klTb > 1000) {
+            de_xuat = "Gom nhóm ghép xe";
+        } else {
+            de_xuat = "Luân chuyển về KTC Lấy";
+        }
+        
+        return {
+            ...s,
+            de_xuat: de_xuat
+        };
+    });
+
+    let sorted = getSortedArr(mappedShops, sortState.shop.key, sortState.shop.asc);
     const tbody = document.getElementById('shop-tbody');
     tbody.innerHTML = '';
 
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="20" class="placeholder-text">Không có shop nào tại ${selectedProv} gửi đơn nhiều nhất đi ${destProv} trong cơ sở dữ liệu.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="21" class="placeholder-text">Không có shop nào tại ${selectedProv} gửi đơn nhiều nhất đi ${destProv} trong cơ sở dữ liệu.</td></tr>`;
         return;
     }
 
     sorted.forEach(s => {
         let isSelected = (selectedShopName === s.ten_kh) ? 'selected-row' : '';
+        let badgeClass = "badge-standard";
+        if (s.de_xuat === "Luân chuyển thẳng KTC Giao") badgeClass = "badge-direct";
+        if (s.de_xuat === "Gom nhóm ghép xe") badgeClass = "badge-group";
+
         tbody.innerHTML += `
             <tr class="${isSelected}" onclick="selectShopRow(this, '${s.ten_kh}', ${getFloatVal(s.pct_odr)}, ${getFloatVal(s.pct_opr)})">
                 <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
+                <td><span class="${badgeClass}">${s.de_xuat}</span></td>
                 <td>${s.pickwarehouseid}</td>
                 <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name}</td>
                 <td>${s.vung}</td>
@@ -557,6 +610,30 @@ function buildTrendChart(routeName) {
             plugins: {
                 legend: {
                     labels: { color: '#0f172a', font: { size: 10, weight: '500' } }
+                },
+                datalabels: {
+                    display: true,
+                    align: 'top',
+                    anchor: 'end',
+                    font: {
+                        family: "'Inter', sans-serif",
+                        size: 9,
+                        weight: '700'
+                    },
+                    color: function(context) {
+                        return context.dataset.borderColor;
+                    },
+                    formatter: function(value, context) {
+                        let label = context.dataset.label;
+                        if (label.includes('%') || label.includes('ODR') || label.includes('Longtail')) {
+                            return parseFloat(value).toFixed(1) + "%";
+                        }
+                        if (label.includes('Leadtime') || label.includes('(h)')) {
+                            return parseFloat(value).toFixed(1) + "h";
+                        }
+                        return value;
+                    },
+                    offset: 4
                 }
             }
         }
@@ -622,6 +699,23 @@ function buildShopTrendChart(shopName, odr, opr) {
             plugins: {
                 legend: {
                     labels: { color: '#0f172a', font: { size: 10, weight: '500' } }
+                },
+                datalabels: {
+                    display: true,
+                    align: 'top',
+                    anchor: 'end',
+                    font: {
+                        family: "'Inter', sans-serif",
+                        size: 9,
+                        weight: '700'
+                    },
+                    color: function(context) {
+                        return context.dataset.borderColor;
+                    },
+                    formatter: function(value, context) {
+                        return parseFloat(value).toFixed(1) + "%";
+                    },
+                    offset: 4
                 }
             }
         }

@@ -1,5 +1,5 @@
 :root {
-    --bg-color: #f8fafc;
+    --bg-color: #f1f5f9;
     --panel-bg: #ffffff;
     --panel-border: #e2e8f0;
     --text-main: #0f172a;
@@ -255,9 +255,9 @@ body {
     border-radius: 8px;
     background: #ffffff;
 }
-.table-scroll-container.limit-prov { max-height: 280px; }
-.table-scroll-container.limit-route { max-height: 280px; }
-.table-scroll-container.limit-shop { max-height: 380px; }
+.table-scroll-container.limit-prov { max-height: 350px; }
+.table-scroll-container.limit-route { max-height: 350px; }
+.table-scroll-container.limit-shop { max-height: 450px; }
 
 /* Table styling */
 .data-table {
@@ -327,6 +327,26 @@ body {
 .data-table tr:hover td:nth-child(1),
 .data-table tr:hover td:nth-child(2) {
     background: #f8fafc !important;
+}
+
+/* Visual Column Grouping in Step 2 */
+/* KTC Count Grouping (Soft Blue) */
+#route-table td:nth-child(7),
+#route-table td:nth-child(8),
+#route-table td:nth-child(9),
+#route-table td:nth-child(10) {
+    background: #f0f9ff !important;
+    color: #0369a1 !important;
+    font-weight: 500;
+}
+/* Chặng Leadtime Grouping (Soft Purple) */
+#route-table td:nth-child(11),
+#route-table td:nth-child(12),
+#route-table td:nth-child(13),
+#route-table td:nth-child(14) {
+    background: #faf5ff !important;
+    color: #6b21a8 !important;
+    font-weight: 500;
 }
 
 /* Warnings */
@@ -447,4 +467,41 @@ body {
     color: var(--text-muted);
     font-style: italic;
     padding: 24px;
+}
+
+/* Badges for Operational Recommendations */
+.badge-direct {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #bbf7d0 !important;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.76rem;
+    display: inline-block;
+    box-shadow: 0 1px 2px rgba(21, 128, 61, 0.05);
+}
+
+.badge-group {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a !important;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.76rem;
+    display: inline-block;
+    box-shadow: 0 1px 2px rgba(180, 83, 9, 0.05);
+}
+
+.badge-standard {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.76rem;
+    display: inline-block;
+    box-shadow: 0 1px 2px rgba(71, 85, 105, 0.05);
 }

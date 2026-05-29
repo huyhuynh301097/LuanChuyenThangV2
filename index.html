@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js CDN -->
+    <!-- Chart.js CDN and Datalabels Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -32,7 +33,7 @@
                 <i class="fa-solid fa-compass-drafting logo-icon"></i>
                 <div>
                     <h2>GHN Focus Link</h2>
-                    <span>Control Center v6.2</span>
+                    <span>Control Center v6.3</span>
                 </div>
             </div>
             
@@ -46,7 +47,7 @@
             </div>
 
             <div class="sidebar-info">
-                <p><i class="fa-solid fa-circle-info"></i> Nhấp chọn <strong>Tỉnh Lấy</strong> ở Bước 1 → <strong>Tuyến</strong> ở Bước 2 để tự động liên kết đối soát.</p>
+                <p><i class="fa-solid fa-circle-info text-blue"></i> Nhấp chọn <strong>Tỉnh Lấy</strong> ở Bước 1 → <strong>Tuyến</strong> ở Bước 2 để tự động liên kết đối soát.</p>
             </div>
 
             <div class="sidebar-footer">
@@ -56,79 +57,78 @@
 
         <!-- MAIN DASHBOARD CONTENT -->
         <main class="dashboard-container">
-            <!-- Grid Row 1: Step 1 (Left) & Step 2 (Right) -->
-            <div class="dashboard-grid-top">
-                <!-- STEP 1: PROVINCE OUTLOOK -->
-                <section class="step-section glass-panel" id="section-step1">
-                    <div class="section-title-bar">
-                        <div class="step-badge">1</div>
-                        <div class="step-title-text">
-                            <h3>BƯỚC 1: Đối Soát Tỉnh Lấy (chi_so_tinh)</h3>
-                            <p>Đánh giá hiệu suất 63 tỉnh lấy toàn quốc</p>
-                        </div>
+            <!-- STEP 1: PROVINCE OUTLOOK -->
+            <section class="step-section glass-panel" id="section-step1">
+                <div class="section-title-bar">
+                    <div class="step-badge">1</div>
+                    <div class="step-title-text">
+                        <h3>BƯỚC 1: Đối Soát Tỉnh Lấy (chi_so_tinh)</h3>
+                        <p>Đánh giá hiệu suất 63 tỉnh lấy toàn quốc</p>
                     </div>
+                </div>
 
-                    <div class="table-scroll-container limit-prov">
-                        <table class="data-table" id="prov-table">
-                            <thead>
-                                <tr>
-                                    <th class="sortable" onclick="sortData('prov', 'vung_lay')">Vùng <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('prov', 'tinh_lay')">Tỉnh Lấy <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('prov', 'vol')">Sản lượng <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('prov', 'kl')">Khối Lượng (Kg) <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('prov', 'pct_opr')">%OPR <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('prov', 'pct_rot_lc')">%RớtLC <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('prov', 'pct_odr')">%ODR <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('prov', 'pct_longtail')">%Longtail <i class="fa-solid fa-sort"></i></th>
-                                </tr>
-                            </thead>
-                            <tbody id="prov-tbody">
-                                <!-- Dynamic -->
-                            </tbody>
-                        </table>
+                <div class="table-scroll-container limit-prov">
+                    <table class="data-table" id="prov-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortData('prov', 'vung_lay')">Vùng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'tinh_lay')">Tỉnh Lấy <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'vol')">Sản lượng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'kl')">Khối Lượng (Kg) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_opr')">%OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_rot_lc')">%RớtLC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_odr')">%ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_longtail')">%Longtail <i class="fa-solid fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="prov-tbody">
+                            <!-- Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- STEP 2: ROUTE ANALYSIS -->
+            <section class="step-section glass-panel disabled-step" id="section-step2">
+                <div class="section-title-bar">
+                    <div class="step-badge">2</div>
+                    <div class="step-title-text">
+                        <h3>BƯỚC 2: Phân Tích Tuyến Lấy - Giao Của Tỉnh <span id="selected-prov-label" class="label-highlight">Chưa Chọn</span></h3>
+                        <p>Phân rã chi tiết % đi qua KTC và Leadtime các chặng nhỏ</p>
                     </div>
-                </section>
+                </div>
 
-                <!-- STEP 2: ROUTE ANALYSIS -->
-                <section class="step-section glass-panel disabled-step" id="section-step2">
-                    <div class="section-title-bar">
-                        <div class="step-badge">2</div>
-                        <div class="step-title-text">
-                            <h3>BƯỚC 2: Phân Tích Tuyến Lấy - Giao Của Tỉnh <span id="selected-prov-label" class="label-highlight">Chưa Chọn</span></h3>
-                            <p>Chi tiết tuyến liên kết kết nối chặng leadtime & KTC vận hành</p>
-                        </div>
-                    </div>
+                <div class="table-scroll-container limit-route">
+                    <table class="data-table" id="route-table">
+                        <thead>
+                            <tr>
+                                <th>Tuyến Vận Chuyển</th>
+                                <th class="sortable" onclick="sortData('route', 'vol')">Sản lượng <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_opr')">%OPR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_odr')">%ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_longtail')">%Longtail <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_tong')">Leadtime <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_1ktc')">%1KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_2ktc')">%2KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_3ktc')">%3KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_4plus_ktc')">%4+KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_xuat_bclay_nhap_ktc1')">LT BC→KTC1 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_ktc1_ktc2')">LT KTC1→2 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_ktc2_ktc3')">LT KTC2→3 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_ktc_cuoi_nhap_bcgiao')">LT KTC Cuối→BC Giao <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'ktc_lay')">KTC Lấy <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'ktc_giao')">KTC Giao <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'de_xuat')">Đề Xuất Phân Luồng <i class="fa-solid fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="route-tbody">
+                            <!-- Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-                    <div class="table-scroll-container limit-route">
-                        <table class="data-table" id="route-table">
-                            <thead>
-                                <tr>
-                                    <th>Tuyến Vận Chuyển</th>
-                                    <th class="sortable" onclick="sortData('route', 'vol')">Sản lượng <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'pct_opr')">%OPR <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'pct_odr')">%ODR <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'pct_longtail')">%Longtail <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'lt_tong')">Leadtime <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'pct_1ktc')">%1KTC <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'pct_2ktc')">%2KTC <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'pct_3ktc')">%3KTC <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'pct_4plus_ktc')">%4+KTC <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'lt_xuat_bclay_nhap_ktc1')">LT BC→KTC1 <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'lt_ktc1_ktc2')">LT KTC1→2 <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'lt_ktc2_ktc3')">LT KTC2→3 <i class="fa-solid fa-sort"></i></th>
-                                    <th class="sortable" onclick="sortData('route', 'lt_ktc_cuoi_nhap_bcgiao')">LT KTC Cuối→BC Giao <i class="fa-solid fa-sort"></i></th>
-                                    <th>Mạng Lưới KTC Phụ Trách</th>
-                                </tr>
-                            </thead>
-                            <tbody id="route-tbody">
-                                <!-- Dynamic -->
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-
-            <!-- TREND ANALYTICS HUB: Dedicated Chart Panels -->
+            <!-- TREND ANALYTICS HUB -->
             <div class="trend-analytics-row glass-panel" id="section-trends">
                 <div class="trend-header">
                     <h3><i class="fa-solid fa-chart-line text-blue"></i> TRUNG TÂM PHÂN TÍCH XU HƯỚNG 3 THÁNG LIÊN TIẾP</h3>
@@ -167,6 +167,7 @@
                         <thead>
                             <tr>
                                 <th>Tên Khách Hàng (Shop)</th>
+                                <th class="sortable" onclick="sortData('shop', 'de_xuat')">Mô Hình Vận Hành Đề Xuất <i class="fa-solid fa-sort"></i></th>
                                 <th>Mã Kho Gửi</th>
                                 <th>Tên Kho Gửi</th>
                                 <th>Vùng Lấy</th>
@@ -194,7 +195,7 @@
                     </table>
                 </div>
             </section>
-        </main>
+        </div>
     </div>
 
     <script src="app.js"></script>
