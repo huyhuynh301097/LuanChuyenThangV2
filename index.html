@@ -31,6 +31,62 @@
 
         <!-- MAIN DASHBOARD CONTENT -->
         <main class="dashboard-container">
+            <!-- STEP 0: OPERATIONAL COMMAND & HEATMAP HUB -->
+            <section class="step-section glass-panel" id="section-command-hub">
+                <div class="section-title-bar animate-fade-in">
+                    <div class="step-badge"><i class="fa-solid fa-map-location-dot"></i></div>
+                    <div class="step-title-text">
+                        <h3>Bản Đồ Nhiệt Vận Hành Quốc Gia & Đề Xuất Triển Khai</h3>
+                        <p>Hệ thống tự động phân tích KPI 63 tỉnh lấy toàn quốc, đề xuất các khu vực và tuyến chặng cần triển khai gom ghép xe trực tiếp dựa trên số lượng shop đủ tải, hiệu suất Leadtime và tỷ lệ Longtail đang cao.</p>
+                    </div>
+                    <div class="step-legend">
+                        <div class="legend-item"><span class="color-box heatmap-critical"></span> Rất Cao</div>
+                        <div class="legend-item"><span class="color-box heatmap-high"></span> Cao</div>
+                        <div class="legend-item"><span class="color-box heatmap-medium"></span> Trung Bình</div>
+                        <div class="legend-item"><span class="color-box heatmap-low"></span> Thấp</div>
+                    </div>
+                </div>
+
+                <div class="command-hub-layout">
+                    <!-- Heatmap Grid -->
+                    <div class="heatmap-section">
+                        <div class="heatmap-section-header">
+                            <h4><i class="fa-solid fa-fire-flame-curved text-purple"></i> Phân Hạng Điểm Ưu Tiên Triển Khai Theo Khu Vực</h4>
+                        </div>
+                        <div class="heatmap-regions">
+                            <div class="region-box">
+                                <h5><i class="fa-solid fa-landmark-flag text-purple"></i> Miền Bắc</h5>
+                                <div class="provinces-grid" id="north-provinces">
+                                    <div class="placeholder-text">Đang tính toán dữ liệu miền Bắc...</div>
+                                </div>
+                            </div>
+                            <div class="region-box">
+                                <h5><i class="fa-solid fa-mountain-sun text-purple"></i> Miền Trung & Tây Nguyên</h5>
+                                <div class="provinces-grid" id="central-provinces">
+                                    <div class="placeholder-text">Đang tính toán dữ liệu miền Trung...</div>
+                                </div>
+                            </div>
+                            <div class="region-box">
+                                <h5><i class="fa-solid fa-tree-city text-purple"></i> Miền Nam</h5>
+                                <div class="provinces-grid" id="south-provinces">
+                                    <div class="placeholder-text">Đang tính toán dữ liệu miền Nam...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recommendations Sidebar -->
+                    <div class="heatmap-sidebar">
+                        <div class="sidebar-header">
+                            <h4><i class="fa-solid fa-wand-magic-sparkles text-purple"></i> Đề Xuất Tuyến Trọng Điểm</h4>
+                        </div>
+                        <div id="heatmap-recommendation-content" class="sidebar-content">
+                            <div class="placeholder-text">Nhấp chọn một tỉnh bất kỳ trên bản đồ nhiệt để xem phân tích và đề xuất tuyến chặng luân chuyển chi tiết.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- STEP 1: PROVINCE OUTLOOK -->
             <section class="step-section glass-panel" id="section-step1">
                 <div class="section-title-bar">
