@@ -208,8 +208,31 @@ function resetSelections() {
     document.getElementById('trend-route-label').innerText = "Chưa Chọn";
     document.getElementById('trend-shop-label').innerText = "Chưa Chọn";
 
-    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="17" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
-    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="21" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="16" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
+    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="20" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    
+    // Reset Step 4
+    document.getElementById('section-step4').classList.add('disabled-step');
+    document.getElementById('consolidate-prov-label').innerText = "Chưa Chọn";
+    document.getElementById('ktc-giao-name').innerText = "Chưa Chọn";
+    document.getElementById('ktc-lay-name').innerText = "Chưa Chọn";
+    document.getElementById('8t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>`;
+    document.getElementById('19t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>`;
+    document.getElementById('8t-total-kl').innerText = "0 Kg";
+    document.getElementById('8t-fill-pct').innerText = "0%";
+    document.getElementById('8t-status').innerText = "Chưa Đủ Tải";
+    document.getElementById('8t-status').className = "badge-standard";
+    document.getElementById('8t-leadtime-saved').innerText = "0h";
+    document.getElementById('8t-progress-text').innerText = "0 / 8,000 Kg";
+    document.getElementById('8t-progress-bar').style.width = "0%";
+
+    document.getElementById('19t-total-kl').innerText = "0 Kg";
+    document.getElementById('19t-fill-pct').innerText = "0%";
+    document.getElementById('19t-status').innerText = "Chưa Đủ Tải";
+    document.getElementById('19t-status').className = "badge-standard";
+    document.getElementById('19t-leadtime-saved').innerText = "0h";
+    document.getElementById('19t-progress-text').innerText = "0 / 1,900 Kg";
+    document.getElementById('19t-progress-bar').style.width = "0%";
     
     if (trendChartInstance) {
         trendChartInstance.destroy();
@@ -328,23 +351,9 @@ function renderStep2() {
     
     let joined = matchedRoutes.map(r => {
         let ltInfo = dbData.lt.find(l => l.thang === selectedMonth && l.tuyen === r.tuyen);
-        let vol = parseFloat(r.vol.toString().replace(/,/g, ''));
         let ktc_lay = r["KTC/KCT lấy"] || "";
         let ktc_giao = r["KTC/KCT giao"] || "";
         
-        let de_xuat = "";
-        if (!ktc_lay || !ktc_giao) {
-            de_xuat = "Chưa rõ luồng";
-        } else if (ktc_lay === ktc_giao) {
-            de_xuat = "Gom tại KTC Lấy";
-        } else {
-            if (vol > 500) {
-                de_xuat = "Luân chuyển thẳng KTC Giao";
-            } else {
-                de_xuat = "Gom nhóm ghép xe";
-            }
-        }
-
         return {
             ...r,
             lt_tong: ltInfo ? ltInfo.lt_tong : r.Leadtine,
@@ -357,8 +366,7 @@ function renderStep2() {
             lt_ktc2_ktc3: ltInfo ? ltInfo.lt_ktc2_ktc3 : "",
             lt_ktc_cuoi_nhap_bcgiao: ltInfo ? ltInfo.lt_ktc_cuoi_nhap_bcgiao : "",
             ktc_lay: ktc_lay,
-            ktc_giao: ktc_giao,
-            de_xuat: de_xuat
+            ktc_giao: ktc_giao
         };
     });
 
@@ -368,15 +376,12 @@ function renderStep2() {
     tbody.innerHTML = '';
 
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="17" class="placeholder-text">Không có tuyến gửi nào xuất phát từ ${selectedProv} trong tháng ${selectedMonth}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="16" class="placeholder-text">Không có tuyến gửi nào xuất phát từ ${selectedProv} trong tháng ${selectedMonth}.</td></tr>`;
         return;
     }
 
     sorted.forEach(r => {
         let isSelected = (selectedRoute === r.tuyen) ? 'selected-row' : '';
-        let badgeClass = "badge-standard";
-        if (r.de_xuat === "Luân chuyển thẳng KTC Giao") badgeClass = "badge-direct";
-        if (r.de_xuat === "Gom nhóm ghép xe") badgeClass = "badge-group";
 
         tbody.innerHTML += `
             <tr class="${isSelected}" onclick="selectRoute('${r.tuyen}')">
@@ -396,7 +401,6 @@ function renderStep2() {
                 <td>${formatHours(r.lt_ktc_cuoi_nhap_bcgiao)}</td>
                 <td style="font-weight: 500; color: #0369a1;">${r.ktc_lay || "--"}</td>
                 <td style="font-weight: 500; color: #6b21a8;">${r.ktc_giao || "--"}</td>
-                <td><span class="${badgeClass}">${r.de_xuat}</span></td>
             </tr>
         `;
     });
@@ -405,14 +409,17 @@ function renderStep2() {
 function selectRoute(routeName) {
     selectedRoute = routeName;
     document.getElementById('section-step3').classList.remove('disabled-step');
+    document.getElementById('section-step4').classList.remove('disabled-step');
     
     let destProv = routeName.split(" - ")[1];
     document.getElementById('shop-dest-label').innerText = destProv;
     document.getElementById('trend-route-label').innerText = routeName;
+    document.getElementById('consolidate-prov-label').innerText = selectedProv;
 
     renderStep2();
     renderStep3();
     buildTrendChart(routeName);
+    calculateConsolidation(routeName);
     
     // Clear Shop chart initially until clicked
     if (shopChartInstance) {
@@ -431,47 +438,29 @@ function renderStep3() {
         let matchProv = s.tinh_lay === selectedProv;
         let normalizedShopTop = normalizeProv(s.top_tinh_giao);
         let matchDest = normalizedShopTop.includes(normalizedDest) || normalizedDest.includes(normalizedShopTop);
-        return matchProv && matchDest;
-    });
-
-    let mappedShops = filteredShops.map(s => {
-        let volTb = parseFloat(s.vol_tb_ngay.toString().replace(/,/g, ''));
-        let klTb = parseFloat(s.kl_tb_ngay.toString().replace(/,/g, ''));
         
-        let de_xuat = "";
-        if (volTb > 800 || klTb > 3000) {
-            de_xuat = "Luân chuyển thẳng KTC Giao";
-        } else if (volTb > 300 || klTb > 1000) {
-            de_xuat = "Gom nhóm ghép xe";
-        } else {
-            de_xuat = "Luân chuyển về KTC Lấy";
+        let matchMonth = true;
+        if (s.thang) {
+            matchMonth = s.thang === selectedMonth;
         }
-        
-        return {
-            ...s,
-            de_xuat: de_xuat
-        };
+        return matchProv && matchDest && matchMonth;
     });
 
-    let sorted = getSortedArr(mappedShops, sortState.shop.key, sortState.shop.asc);
+    let sorted = getSortedArr(filteredShops, sortState.shop.key, sortState.shop.asc);
     const tbody = document.getElementById('shop-tbody');
     tbody.innerHTML = '';
 
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="21" class="placeholder-text">Không có shop nào tại ${selectedProv} gửi đơn nhiều nhất đi ${destProv} trong cơ sở dữ liệu.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="20" class="placeholder-text">Không có shop nào tại ${selectedProv} gửi đơn nhiều nhất đi ${destProv} trong cơ sở dữ liệu.</td></tr>`;
         return;
     }
 
     sorted.forEach(s => {
         let isSelected = (selectedShopName === s.ten_kh) ? 'selected-row' : '';
-        let badgeClass = "badge-standard";
-        if (s.de_xuat === "Luân chuyển thẳng KTC Giao") badgeClass = "badge-direct";
-        if (s.de_xuat === "Gom nhóm ghép xe") badgeClass = "badge-group";
 
         tbody.innerHTML += `
             <tr class="${isSelected}" onclick="selectShopRow(this, '${s.ten_kh}', ${getFloatVal(s.pct_odr)}, ${getFloatVal(s.pct_opr)})">
                 <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
-                <td><span class="${badgeClass}">${s.de_xuat}</span></td>
                 <td>${s.pickwarehouseid}</td>
                 <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name}</td>
                 <td>${s.vung}</td>
@@ -649,9 +638,30 @@ function buildShopTrendChart(shopName, odr, opr) {
     
     document.getElementById('trend-shop-label').innerText = shopName;
 
-    // Thiết lập 3 tháng mô phỏng quanh tỉ lệ ODR & OPR thực tế của Shop
-    let odrs = [(odr - 1.8).toFixed(1), (odr + 0.9).toFixed(1), odr.toFixed(1)];
-    let oprs = [(opr - 0.8).toFixed(1), (opr + 0.4).toFixed(1), opr.toFixed(1)];
+    // Kiểm tra dữ liệu lịch sử thực tế 3 tháng của shop từ Google Sheet
+    let rawShopsForName = dbData.shop.filter(x => x.ten_kh === shopName);
+    let hasMonthlyData = rawShopsForName.some(x => x.thang);
+    
+    let odrs = [];
+    let oprs = [];
+    
+    if (hasMonthlyData) {
+        let months = ["2026-03", "2026-04", "2026-05"];
+        months.forEach(m => {
+            let matched = rawShopsForName.find(x => x.thang === m);
+            if (matched) {
+                odrs.push(getFloatVal(matched.pct_odr).toFixed(1));
+                oprs.push(getFloatVal(matched.pct_opr).toFixed(1));
+            } else {
+                odrs.push(odr.toFixed(1));
+                oprs.push(opr.toFixed(1));
+            }
+        });
+    } else {
+        // Fallback mô phỏng nếu không có cột thang thực tế
+        odrs = [(odr - 1.8).toFixed(1), (odr + 0.9).toFixed(1), odr.toFixed(1)];
+        oprs = [(opr - 0.8).toFixed(1), (opr + 0.4).toFixed(1), opr.toFixed(1)];
+    }
 
     shopChartInstance = new Chart(ctx, {
         type: 'line',
@@ -720,4 +730,133 @@ function buildShopTrendChart(shopName, odr, opr) {
             }
         }
     });
+}
+
+// ==================== BƯỚC 4: TÍNH TOÁN GOM GHÉP SHOP TỐI ƯU LOGISTICS ====================
+function calculateConsolidation(routeName) {
+    let currentRouteData = dbData.route.find(r => r.thang === selectedMonth && r.tuyen === routeName);
+    let ltInfo = dbData.lt.find(l => l.thang === selectedMonth && l.tuyen === routeName);
+    
+    let ktcLay = currentRouteData ? currentRouteData["KTC/KCT lấy"] : "";
+    let ktcGiao = currentRouteData ? currentRouteData["KTC/KCT giao"] : "";
+    
+    document.getElementById('ktc-lay-name').innerText = ktcLay || "Chưa xác định";
+    document.getElementById('ktc-giao-name').innerText = ktcGiao || "Chưa xác định";
+    
+    // Lấy toàn bộ shop thuộc tỉnh lấy trong tháng được chọn
+    let allShopsInProv = dbData.shop.filter(s => {
+        let matchProv = s.tinh_lay === selectedProv;
+        let matchMonth = true;
+        if (s.thang) {
+            matchMonth = s.thang === selectedMonth;
+        }
+        return matchProv && matchMonth;
+    });
+    
+    // 1. Luồng 1: Gom Đầu Giao Xe 8T (Yêu cầu 8,000 Kg)
+    // Gom các shop có KTC giao trùng với KTC giao của tuyến đang chọn
+    let shops8T = allShopsInProv.filter(s => {
+        let shopTopRoute = selectedProv + " - " + s.top_tinh_giao;
+        let shopRouteData = dbData.route.find(r => r.thang === selectedMonth && r.tuyen === shopTopRoute);
+        let shopKtcGiao = shopRouteData ? shopRouteData["KTC/KCT giao"] : "";
+        return shopKtcGiao && shopKtcGiao === ktcGiao;
+    });
+    
+    // 2. Luồng 2: Gom Đầu Lấy Xe 1.9T (Yêu cầu 1,900 Kg)
+    // Gom tất cả các shop tại tỉnh lấy
+    let shops19T = allShopsInProv;
+    
+    // TÍNH TOÁN LUỒNG 1 (XE 8T)
+    let totalVol8T = 0;
+    let totalKl8T = 0;
+    shops8T.forEach(s => {
+        totalVol8T += getFloatVal(s.vol_tb_ngay);
+        totalKl8T += getFloatVal(s.kl_tb_ngay);
+    });
+    
+    let fillPct8T = Math.min(100, (totalKl8T / 8000) * 100);
+    let status8T = totalKl8T >= 8000 ? "KHẢ THI - Đủ tải xe 8T" : `CHƯA ĐỦ TẢI (Thiếu ${(8000 - totalKl8T).toFixed(0)} Kg)`;
+    let badgeClass8T = totalKl8T >= 8000 ? "badge-direct" : "badge-standard";
+    
+    // Tiết kiệm Leadtime xe 8T: Bypass KTC Lấy, tiết kiệm chặng lt_ktc1_ktc2
+    let ltSaved8T = 0;
+    if (ltInfo && ltInfo.lt_ktc1_ktc2) {
+        ltSaved8T = parseFloat(ltInfo.lt_ktc1_ktc2);
+    } else if (currentRouteData && currentRouteData.lt_ktc1_ktc2) {
+        ltSaved8T = parseFloat(currentRouteData.lt_ktc1_ktc2);
+    }
+    if (isNaN(ltSaved8T)) ltSaved8T = 0;
+    
+    document.getElementById('8t-total-kl').innerText = totalKl8T.toLocaleString('vi-VN') + " Kg/ngày";
+    document.getElementById('8t-fill-pct').innerText = fillPct8T.toFixed(1) + "%";
+    document.getElementById('8t-status').innerText = status8T;
+    document.getElementById('8t-status').className = badgeClass8T;
+    document.getElementById('8t-leadtime-saved').innerHTML = ltSaved8T > 0 ? `<i class="fa-solid fa-circle-down"></i> Giảm ${ltSaved8T.toFixed(1)}h` : "--";
+    document.getElementById('8t-progress-text').innerText = `${totalKl8T.toLocaleString('vi-VN')} / 8,000 Kg`;
+    document.getElementById('8t-progress-bar').style.width = fillPct8T + "%";
+    
+    const tbody8T = document.getElementById('8t-tbody');
+    tbody8T.innerHTML = "";
+    if (shops8T.length === 0) {
+        tbody8T.innerHTML = `<tr><td colspan="4" class="placeholder-text">Không có shop nào có cùng KTC Giao.</td></tr>`;
+    } else {
+        shops8T.sort((a,b) => getFloatVal(b.kl_tb_ngay) - getFloatVal(a.kl_tb_ngay));
+        shops8T.forEach(s => {
+            tbody8T.innerHTML += `
+                <tr>
+                    <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
+                    <td>${formatNum(s.vol_tb_ngay)}</td>
+                    <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay)} Kg</td>
+                    <td>${s.top_tinh_giao}</td>
+                </tr>
+            `;
+        });
+    }
+    
+    // TÍNH TOÁN LUỒNG 2 (XE 1.9T)
+    let totalVol19T = 0;
+    let totalKl19T = 0;
+    shops19T.forEach(s => {
+        totalVol19T += getFloatVal(s.vol_tb_ngay);
+        totalKl19T += getFloatVal(s.kl_tb_ngay);
+    });
+    
+    let fillPct19T = Math.min(100, (totalKl19T / 1900) * 100);
+    let status19T = totalKl19T >= 1900 ? "KHẢ THI - Đủ tải xe 1.9T" : `CHƯA ĐỦ TẢI (Thiếu ${(1900 - totalKl19T).toFixed(0)} Kg)`;
+    let badgeClass19T = totalKl19T >= 1900 ? "badge-direct" : "badge-standard";
+    
+    // Tiết kiệm Leadtime xe 1.9T: Đi thẳng trung chuyển chặng lt_xuat_bclay_nhap_ktc1
+    let ltSaved19T = 0;
+    if (ltInfo && ltInfo.lt_xuat_bclay_nhap_ktc1) {
+        ltSaved19T = parseFloat(ltInfo.lt_xuat_bclay_nhap_ktc1);
+    } else if (currentRouteData && currentRouteData.lt_xuat_bclay_nhap_ktc1) {
+        ltSaved19T = parseFloat(currentRouteData.lt_xuat_bclay_nhap_ktc1);
+    }
+    if (isNaN(ltSaved19T)) ltSaved19T = 0;
+    
+    document.getElementById('19t-total-kl').innerText = totalKl19T.toLocaleString('vi-VN') + " Kg/ngày";
+    document.getElementById('19t-fill-pct').innerText = fillPct19T.toFixed(1) + "%";
+    document.getElementById('19t-status').innerText = status19T;
+    document.getElementById('19t-status').className = badgeClass19T;
+    document.getElementById('19t-leadtime-saved').innerHTML = ltSaved19T > 0 ? `<i class="fa-solid fa-circle-down"></i> Giảm ${ltSaved19T.toFixed(1)}h` : "--";
+    document.getElementById('19t-progress-text').innerText = `${totalKl19T.toLocaleString('vi-VN')} / 1,900 Kg`;
+    document.getElementById('19t-progress-bar').style.width = fillPct19T + "%";
+    
+    const tbody19T = document.getElementById('19t-tbody');
+    tbody19T.innerHTML = "";
+    if (shops19T.length === 0) {
+        tbody19T.innerHTML = `<tr><td colspan="4" class="placeholder-text">Không có shop nào tại Tỉnh Lấy.</td></tr>`;
+    } else {
+        shops19T.sort((a,b) => getFloatVal(b.kl_tb_ngay) - getFloatVal(a.kl_tb_ngay));
+        shops19T.forEach(s => {
+            tbody19T.innerHTML += `
+                <tr>
+                    <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
+                    <td>${formatNum(s.vol_tb_ngay)}</td>
+                    <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay)} Kg</td>
+                    <td>${s.top_tinh_giao}</td>
+                </tr>
+            `;
+        });
+    }
 }

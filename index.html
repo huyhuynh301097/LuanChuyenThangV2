@@ -118,7 +118,6 @@
                                 <th class="sortable" onclick="sortData('route', 'lt_ktc_cuoi_nhap_bcgiao')">LT KTC Cuối→BC Giao <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('route', 'ktc_lay')">KTC Lấy <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('route', 'ktc_giao')">KTC Giao <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'de_xuat')">Đề Xuất Phân Luồng <i class="fa-solid fa-sort"></i></th>
                             </tr>
                         </thead>
                         <tbody id="route-tbody">
@@ -167,7 +166,6 @@
                         <thead>
                             <tr>
                                 <th>Tên Khách Hàng (Shop)</th>
-                                <th class="sortable" onclick="sortData('shop', 'de_xuat')">Mô Hình Vận Hành Đề Xuất <i class="fa-solid fa-sort"></i></th>
                                 <th>Mã Kho Gửi</th>
                                 <th>Tên Kho Gửi</th>
                                 <th>Vùng Lấy</th>
@@ -193,6 +191,129 @@
                             <!-- Dynamic -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- STEP 4: TRUCK CONSOLIDATION PLAN -->
+            <section class="step-section glass-panel disabled-step" id="section-step4">
+                <div class="section-title-bar">
+                    <div class="step-badge">4</div>
+                    <div class="step-title-text">
+                        <h3>BƯỚC 4: Lập Phương Án Gom Ghép Xe Tải Luân Chuyển Thẳng Của Tỉnh <span id="consolidate-prov-label" class="label-highlight">Chưa Chọn</span></h3>
+                        <p>Tính toán gom nhóm shop tự động tối ưu hóa logistics theo 2 mô hình luân chuyển</p>
+                    </div>
+                </div>
+
+                <div class="consolidation-grid">
+                    <!-- Column 1: Delivery Hub Consolidation (8T Truck) -->
+                    <div class="consolidation-card border-purple">
+                        <div class="card-header">
+                            <span class="truck-icon bg-purple"><i class="fa-solid fa-truck-moving"></i> Xe Tải 8T</span>
+                            <h4>Mô Hình 1: Luân Chuyển Thẳng Về KTC Đầu Giao</h4>
+                            <p>Yêu cầu: Gom đủ tải trọng xe tải 8T (8,000 Kg) cùng cụm KTC Đầu Giao: <strong id="ktc-giao-name" class="text-purple">Chưa Chọn</strong></p>
+                        </div>
+                        
+                        <div class="kpi-minigrid">
+                            <div class="kpi-mini-box">
+                                <span>Tổng Khối Lượng Gom</span>
+                                <h3 id="8t-total-kl">0 Kg</h3>
+                            </div>
+                            <div class="kpi-mini-box">
+                                <span>Tỷ Lệ Lấp Đầy</span>
+                                <h3 id="8t-fill-pct">0%</h3>
+                            </div>
+                            <div class="kpi-mini-box">
+                                <span>Trạng Thái Vận Hành</span>
+                                <span id="8t-status" class="badge-standard">Chưa Đủ Tải</span>
+                            </div>
+                            <div class="kpi-mini-box">
+                                <span>KTC Trung Gian</span>
+                                <h3 class="text-green"><i class="fa-solid fa-circle-down"></i> Giảm 1 KTC</h3>
+                            </div>
+                            <div class="kpi-mini-box full-width">
+                                <span>Leadtime Tiết Kiệm Dự Kiến (Bypass KTC Lấy)</span>
+                                <h3 id="8t-leadtime-saved" class="text-green">0h</h3>
+                            </div>
+                        </div>
+
+                        <div class="progress-container">
+                            <div class="progress-bar-label">Tiến Độ Lấp Đầy Tải Xe 8T: <span id="8t-progress-text">0 / 8,000 Kg</span></div>
+                            <div class="progress-bar-track">
+                                <div id="8t-progress-bar" class="progress-bar-fill bg-purple" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="table-scroll-container limit-consolidation">
+                            <table class="data-table small-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tên Doanh Nghiệp (Shop)</th>
+                                        <th>Vol TB/Ngày</th>
+                                        <th>KL TB/Ngày</th>
+                                        <th>Tỉnh Giao Top</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="8t-tbody">
+                                    <tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Pickup Hub Consolidation (1.9T Truck) -->
+                    <div class="consolidation-card border-blue">
+                        <div class="card-header">
+                            <span class="truck-icon bg-blue"><i class="fa-solid fa-truck"></i> Xe Tải 1.9T</span>
+                            <h4>Mô Hình 2: Luân Chuyển Thẳng Về KTC Đầu Lấy</h4>
+                            <p>Yêu cầu: Gom đủ tải trọng xe tải 1.9T (1,900 Kg) về KTC Đầu Lấy: <strong id="ktc-lay-name" class="text-blue">Chưa Chọn</strong> (Gom chung nhiều tỉnh lẻ)</p>
+                        </div>
+                        
+                        <div class="kpi-minigrid">
+                            <div class="kpi-mini-box">
+                                <span>Tổng Khối Lượng Gom</span>
+                                <h3 id="19t-total-kl">0 Kg</h3>
+                            </div>
+                            <div class="kpi-mini-box">
+                                <span>Tỷ Lệ Lấp Đầy</span>
+                                <h3 id="19t-fill-pct">0%</h3>
+                            </div>
+                            <div class="kpi-mini-box">
+                                <span>Trạng Thái Vận Hành</span>
+                                <span id="19t-status" class="badge-standard">Chưa Đủ Tải</span>
+                            </div>
+                            <div class="kpi-mini-box">
+                                <span>KTC Trung Gian</span>
+                                <h3 class="text-blue">Gom Hub Lấy</h3>
+                            </div>
+                            <div class="kpi-mini-box full-width">
+                                <span>Leadtime Tiết Kiệm Dự Kiến (Trung chuyển Nội Tỉnh)</span>
+                                <h3 id="19t-leadtime-saved" class="text-blue">0h</h3>
+                            </div>
+                        </div>
+
+                        <div class="progress-container">
+                            <div class="progress-bar-label">Tiến Độ Lấp Đầy Tải Xe 1.9T: <span id="19t-progress-text">0 / 1,900 Kg</span></div>
+                            <div class="progress-bar-track">
+                                <div id="19t-progress-bar" class="progress-bar-fill bg-blue" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="table-scroll-container limit-consolidation">
+                            <table class="data-table small-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tên Doanh Nghiệp (Shop)</th>
+                                        <th>Vol TB/Ngày</th>
+                                        <th>KL TB/Ngày</th>
+                                        <th>Tỉnh Giao Top</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="19t-tbody">
+                                    <tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở Bước 2 để lập phương án ghép.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
