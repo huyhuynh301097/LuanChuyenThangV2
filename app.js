@@ -83,24 +83,28 @@ function parseCSVLine(line) {
 function formatNum(val) {
     if (!val) return "0";
     let n = parseFloat(val.toString().replace(/,/g, ''));
-    return isNaN(n) ? val : n.toLocaleString('vi-VN');
+    return isNaN(n) ? val : Math.round(n).toLocaleString('vi-VN');
 }
 
 function formatPercent(val) {
     if (!val) return "0%";
-    if (val.toString().includes('%')) return val;
-    let p = parseFloat(val);
+    let s = val.toString().trim();
+    if (s.includes('%')) {
+        let n = parseFloat(s.replace(/%/g, ''));
+        return isNaN(n) ? s : Math.round(n) + "%";
+    }
+    let p = parseFloat(s);
     if (isNaN(p)) return val;
     if (p <= 1.0) {
-        return (p * 100).toFixed(2) + "%";
+        return Math.round(p * 100) + "%";
     }
-    return p.toFixed(2) + "%";
+    return Math.round(p) + "%";
 }
 
 function formatHours(val) {
     if (!val) return "--";
     let h = parseFloat(val);
-    return isNaN(h) ? val : h.toFixed(1) + "h";
+    return isNaN(h) ? val : Math.round(h) + "h";
 }
 
 function normalizeProv(p) {
@@ -446,6 +450,14 @@ function renderStep3() {
     sorted.forEach(s => {
         let isSelected = (selectedShopName === s.ten_kh) ? 'selected-row' : '';
 
+        let pctKlTop = getFloatVal(s.pct_kl_top_tinh_giao);
+        if (pctKlTop <= 0) {
+            let tKl = getFloatVal(s.tong_kl);
+            let topKl = getFloatVal(s.kl_top_tinh_giao);
+            if (tKl > 0) pctKlTop = (topKl / tKl) * 100;
+        }
+        if (pctKlTop <= 0) pctKlTop = 100;
+
         tbody.innerHTML += `
             <tr class="${isSelected}" onclick="selectShopRow(this, '${s.ten_kh}', ${getFloatVal(s.pct_odr)}, ${getFloatVal(s.pct_opr)})">
                 <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
@@ -459,14 +471,14 @@ function renderStep3() {
                 <td>${s.so_ngay}</td>
                 <td style="color: var(--accent-color); font-weight: 600;">${formatNum(s.vol_tb_ngay)}</td>
                 <td>${formatNum(s.kl_tb_ngay)}</td>
-                <td>${s.pct_tren_5kg}</td>
+                <td>${formatPercent(s.pct_tren_5kg)}</td>
                 <td class="${getOPRClass(s.pct_opr)}">${formatPercent(s.pct_opr)}</td>
                 <td>${formatPercent(s.pct_rot_lc)}</td>
                 <td class="${getODRClass(s.pct_odr)}">${formatPercent(s.pct_odr)}</td>
                 <td class="${getLongtailClass(s.pct_longtail)}">${formatPercent(s.pct_longtail)}</td>
                 <td style="font-weight: 600;">${s.top_tinh_giao}</td>
                 <td>${formatNum(s.kl_top_tinh_giao)}</td>
-                <td>${formatPercent(s.pct_kl_top_tinh_giao)}</td>
+                <td>${formatPercent(pctKlTop)}</td>
                 <td style="font-weight: 600; color: #9a3412;">${formatNum(s.kl_tb_ngay_top_tinh_giao)} kg/ngày</td>
             </tr>
         `;
@@ -555,8 +567,7 @@ function buildTrendChart(routeName) {
                     yAxisID: 'y',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 },
                 {
                     label: '%2KTC',
@@ -566,8 +577,7 @@ function buildTrendChart(routeName) {
                     yAxisID: 'y',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 },
                 {
                     label: '%3KTC',
@@ -577,8 +587,7 @@ function buildTrendChart(routeName) {
                     yAxisID: 'y',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 },
                 {
                     label: 'Leadtime (h)',
@@ -598,8 +607,7 @@ function buildTrendChart(routeName) {
                     yAxisID: 'yQty',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 },
                 {
                     label: 'Khối lượng (Kg)',
@@ -609,8 +617,7 @@ function buildTrendChart(routeName) {
                     yAxisID: 'yQty',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 }
             ]
         },
@@ -629,7 +636,7 @@ function buildTrendChart(routeName) {
                     max: 100,
                     ticks: {
                         color: '#475569',
-                        callback: function(value) { return value + "%"; }
+                        callback: function(value) { return Math.round(value) + "%"; }
                     },
                     grid: { color: 'rgba(0, 0, 0, 0.04)' },
                     title: { display: true, text: 'Tỷ lệ (%)', font: { size: 10, weight: '600' } }
@@ -640,7 +647,7 @@ function buildTrendChart(routeName) {
                     min: 0,
                     ticks: {
                         color: '#475569',
-                        callback: function(value) { return value + "h"; }
+                        callback: function(value) { return Math.round(value) + "h"; }
                     },
                     grid: { drawOnChartArea: false },
                     title: { display: true, text: 'Leadtime (giờ)', font: { size: 10, weight: '600' } }
@@ -651,7 +658,7 @@ function buildTrendChart(routeName) {
                     min: 0,
                     ticks: {
                         color: '#475569',
-                        callback: function(value) { return value.toLocaleString('vi-VN'); }
+                        callback: function(value) { return Math.round(value).toLocaleString('vi-VN'); }
                     },
                     grid: { drawOnChartArea: false },
                     title: { display: true, text: 'Sản lượng/Khối lượng', font: { size: 10, weight: '600' } }
@@ -682,12 +689,12 @@ function buildTrendChart(routeName) {
                     formatter: function(value, context) {
                         let label = context.dataset.label;
                         if (label.includes('%') || label.includes('ODR') || label.includes('Longtail')) {
-                            return parseFloat(value).toFixed(1) + "%";
+                            return Math.round(value) + "%";
                         }
                         if (label.includes('Leadtime')) {
-                            return parseFloat(value).toFixed(1) + "h";
+                            return Math.round(value) + "h";
                         }
-                        return value;
+                        return Math.round(value).toLocaleString('vi-VN');
                     },
                     offset: 4
                 }
@@ -786,8 +793,7 @@ function buildShopTrendChart(shopName, odr, opr) {
                     yAxisID: 'y',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 },
                 {
                     label: 'Rớt LC (%)',
@@ -797,8 +803,7 @@ function buildShopTrendChart(shopName, odr, opr) {
                     yAxisID: 'y',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 },
                 {
                     label: 'Leadtime (h)',
@@ -818,8 +823,7 @@ function buildShopTrendChart(shopName, odr, opr) {
                     yAxisID: 'yQty',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 },
                 {
                     label: 'Khối lượng (Kg)',
@@ -829,8 +833,7 @@ function buildShopTrendChart(shopName, odr, opr) {
                     yAxisID: 'yQty',
                     tension: 0.25,
                     borderWidth: 2,
-                    pointRadius: 4,
-                    hidden: true
+                    pointRadius: 4
                 }
             ]
         },
@@ -849,7 +852,7 @@ function buildShopTrendChart(shopName, odr, opr) {
                     max: 100,
                     ticks: {
                         color: '#475569',
-                        callback: function(value) { return value + "%"; }
+                        callback: function(value) { return Math.round(value) + "%"; }
                     },
                     grid: { color: 'rgba(0, 0, 0, 0.04)' },
                     title: { display: true, text: 'Tỷ lệ (%)', font: { size: 10, weight: '600' } }
@@ -860,7 +863,7 @@ function buildShopTrendChart(shopName, odr, opr) {
                     min: 0,
                     ticks: {
                         color: '#475569',
-                        callback: function(value) { return value + "h"; }
+                        callback: function(value) { return Math.round(value) + "h"; }
                     },
                     grid: { drawOnChartArea: false },
                     title: { display: true, text: 'Leadtime (giờ)', font: { size: 10, weight: '600' } }
@@ -871,7 +874,7 @@ function buildShopTrendChart(shopName, odr, opr) {
                     min: 0,
                     ticks: {
                         color: '#475569',
-                        callback: function(value) { return value.toLocaleString('vi-VN'); }
+                        callback: function(value) { return Math.round(value).toLocaleString('vi-VN'); }
                     },
                     grid: { drawOnChartArea: false },
                     title: { display: true, text: 'Sản lượng/Khối lượng', font: { size: 10, weight: '600' } }
@@ -902,12 +905,12 @@ function buildShopTrendChart(shopName, odr, opr) {
                     formatter: function(value, context) {
                         let label = context.dataset.label;
                         if (label.includes('%') || label.includes('ODR') || label.includes('Longtail')) {
-                            return parseFloat(value).toFixed(1) + "%";
+                            return Math.round(value) + "%";
                         }
                         if (label.includes('Leadtime')) {
-                            return parseFloat(value).toFixed(1) + "h";
+                            return Math.round(value) + "h";
                         }
-                        return value;
+                        return Math.round(value).toLocaleString('vi-VN');
                     },
                     offset: 4
                 }
