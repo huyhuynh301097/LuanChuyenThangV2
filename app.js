@@ -208,12 +208,15 @@ function resetSelections() {
     document.getElementById('consolidate-prov-label').innerText = "Chưa Chọn";
     document.getElementById('ktc-giao-name').innerText = "Chưa Chọn";
     document.getElementById('ktc-lay-name').innerText = "Chưa Chọn";
-    document.getElementById('8t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
-    document.getElementById('19t-tbody').innerHTML = `<tr><td colspan="4" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
+    document.getElementById('8t-tbody').innerHTML = `<tr><td colspan="8" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
+    document.getElementById('19t-tbody').innerHTML = `<tr><td colspan="3" class="placeholder-text">Chọn Tuyến ở bảng Tuyến lấy - giao để lập phương án ghép.</td></tr>`;
     document.getElementById('8t-total-kl').innerText = "0 Kg/ngày";
     document.getElementById('8t-fill-pct').innerText = "0%";
     document.getElementById('8t-status').innerText = "Chưa Đủ Tải";
     document.getElementById('8t-status').className = "badge-standard";
+    document.getElementById('8t-route-avg-lt').innerText = "--";
+    document.getElementById('8t-pct-1ktc').innerText = "--";
+    document.getElementById('8t-pct-multi-ktc').innerText = "--";
     document.getElementById('8t-leadtime-saved').innerText = "0h";
     document.getElementById('8t-progress-text').innerText = "0 / 8,000 Kg";
     document.getElementById('8t-progress-bar').style.width = "0%";
@@ -983,6 +986,30 @@ function calculateConsolidation(routeName) {
     }
     if (isNaN(ltSaved8T)) ltSaved8T = 0;
     
+    // Tính toán chỉ số cho các scorecards mới ở Mô hình 1
+    let avgLtStr = "--";
+    let pct1KtcStr = "--";
+    let pctMultiKtcStr = "--";
+    
+    if (ltInfo) {
+        avgLtStr = formatHours(ltInfo.lt_tong);
+        pct1KtcStr = formatPercent(ltInfo.pct_1ktc);
+        
+        let p1 = getFloatVal(ltInfo.pct_1ktc);
+        let p2 = getFloatVal(ltInfo.pct_2ktc);
+        let p3 = getFloatVal(ltInfo.pct_3ktc);
+        let p4 = getFloatVal(ltInfo.pct_4plus_ktc);
+        let pMulti = p2 + p3 + p4;
+        
+        pctMultiKtcStr = formatPercent(pMulti);
+    } else if (currentRouteData) {
+        avgLtStr = formatHours(currentRouteData.Leadtine);
+    }
+    
+    document.getElementById('8t-route-avg-lt').innerText = avgLtStr;
+    document.getElementById('8t-pct-1ktc').innerText = pct1KtcStr;
+    document.getElementById('8t-pct-multi-ktc').innerText = pctMultiKtcStr;
+    
     document.getElementById('8t-total-kl').innerText = totalKl8T.toLocaleString('vi-VN') + " Kg/ngày";
     document.getElementById('8t-fill-pct').innerText = fillPct8T.toFixed(1) + "%";
     document.getElementById('8t-status').innerText = status8T;
@@ -994,7 +1021,7 @@ function calculateConsolidation(routeName) {
     const tbody8T = document.getElementById('8t-tbody');
     tbody8T.innerHTML = "";
     if (shops8T.length === 0) {
-        tbody8T.innerHTML = `<tr><td colspan="4" class="placeholder-text">Không có shop nào có cùng KTC Giao.</td></tr>`;
+        tbody8T.innerHTML = `<tr><td colspan="8" class="placeholder-text">Không có shop nào có cùng KTC Giao.</td></tr>`;
     } else {
         shops8T.sort((a,b) => getFloatVal(b.kl_tb_ngay_top_tinh_giao) - getFloatVal(a.kl_tb_ngay_top_tinh_giao));
         shops8T.forEach(s => {
@@ -1009,8 +1036,12 @@ function calculateConsolidation(routeName) {
             tbody8T.innerHTML += `
                 <tr>
                     <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">${s.warehouse_name || "--"}</td>
+                    <td>${s.quan || "--"}</td>
                     <td>${formatNum(volTopGiao.toFixed(1))}</td>
                     <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay_top_tinh_giao)} Kg</td>
+                    <td class="${getOPRClass(s.pct_opr)}">${formatPercent(s.pct_opr)}</td>
+                    <td class="${getODRClass(s.pct_odr)}">${formatPercent(s.pct_odr)}</td>
                     <td>${s.top_tinh_giao}</td>
                 </tr>
             `;
@@ -1049,7 +1080,7 @@ function calculateConsolidation(routeName) {
     const tbody19T = document.getElementById('19t-tbody');
     tbody19T.innerHTML = "";
     if (shops19T.length === 0) {
-        tbody19T.innerHTML = `<tr><td colspan="4" class="placeholder-text">Không có shop nào tại Tỉnh Lấy.</td></tr>`;
+        tbody19T.innerHTML = `<tr><td colspan="3" class="placeholder-text">Không có shop nào tại Tỉnh Lấy.</td></tr>`;
     } else {
         shops19T.sort((a,b) => getFloatVal(b.kl_tb_ngay) - getFloatVal(a.kl_tb_ngay));
         shops19T.forEach(s => {
@@ -1058,7 +1089,6 @@ function calculateConsolidation(routeName) {
                     <td style="font-weight: 600; color: #0f172a;">${s.ten_kh}</td>
                     <td>${formatNum(s.vol_tb_ngay)}</td>
                     <td style="font-weight: 600; color: var(--accent-color);">${formatNum(s.kl_tb_ngay)} Kg</td>
-                    <td>${s.top_tinh_giao}</td>
                 </tr>
             `;
         });
