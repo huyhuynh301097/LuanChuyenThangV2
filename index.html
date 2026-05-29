@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHN Optimizer - Chuỗi Phân Tích Liên Kết</title>
+    <title>GHN Focus Link - Phân Tích Dữ Liệu 3 Bước</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN for interactive trend charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -27,8 +29,8 @@
             <div class="app-logo">
                 <i class="fa-solid fa-diagram-project"></i>
                 <div>
-                    <h2>GHN Focus Link</h2>
-                    <span>Hệ thống phân tích liên kết & định vị shop lỗi</span>
+                    <h2>GHN Focus Link v5</h2>
+                    <span>Hệ thống phân tích liên kết & đối soát shop lỗi</span>
                 </div>
             </div>
             
@@ -55,7 +57,7 @@
                     <div class="step-num">1</div>
                     <div class="step-title-text">
                         <h3>BƯỚC 1: Đánh Giá Hiệu Suất Tỉnh Lấy (chi_so_tinh)</h3>
-                        <p>Xem toàn bộ chỉ số của 63 tỉnh trong tháng. Nhấp chọn một tỉnh bị lỗi ODR/Longtail/OPR để phân tích tiếp.</p>
+                        <p>Xem toàn bộ chỉ số của 63 tỉnh trong tháng. Nhấp chọn một tỉnh để phân tích sâu hơn.</p>
                     </div>
                     <div class="step-legend">
                         <span class="legend-item"><span class="color-box red"></span> Nguy cấp (<88% ODR / >18% Longtail)</span>
@@ -71,7 +73,7 @@
                                 <th class="sortable" onclick="sortData('prov', 'tinh_lay')">Tỉnh Lấy <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('prov', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('prov', 'kl')">Khối Lượng (Kg) <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('prov', 'pct_opr')">% Hoàn Thành Pick (OPR) <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('prov', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('prov', 'pct_rot_lc')">% Tuyến LC <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('prov', 'pct_odr')">% Giao Đúng Hạn (ODR) <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('prov', 'pct_longtail')">% Hàng Longtail <i class="fa-solid fa-sort"></i></th>
@@ -90,7 +92,7 @@
                     <div class="step-num">2</div>
                     <div class="step-title-text">
                         <h3>BƯỚC 2: Phân Tích Tuyến Lấy - Giao Của Tỉnh <span id="selected-prov-label" class="label-highlight">Chưa Chọn</span></h3>
-                        <p>Danh sách các tuyến vận chuyển đi từ tỉnh lấy được chọn. Bấm chọn tuyến có hiệu suất kém (ODR thấp, Longtail cao, Leadtime dài) để xem danh sách Shop tương ứng.</p>
+                        <p>Danh sách các tuyến gửi liên tỉnh. Nhấp chọn tuyến có hiệu suất kém để đối soát danh sách shop tương ứng ở Bước 3.</p>
                     </div>
                 </div>
 
@@ -101,49 +103,81 @@
                                 <th>Tuyến Vận Chuyển</th>
                                 <th class="sortable" onclick="sortData('route', 'vol')">Sản Lượng (Vol) <i class="fa-solid fa-sort"></i></th>
                                 <th class="sortable" onclick="sortData('route', 'pct_opr')">% OPR <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_odr')">% Giao Đúng Hạn (ODR) <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'pct_longtail')">% Hàng Longtail <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('route', 'lt_tong')">Tổng Leadtime (BC Lấy → BC Giao) <i class="fa-solid fa-sort"></i></th>
-                                <th>Mạng Lưới KTC Di Chuyển</th>
+                                <th class="sortable" onclick="sortData('route', 'pct_odr')">% ODR <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_longtail')">% Longtail <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_tong')">Tổng Leadtime <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_1ktc')">% 1 KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_2ktc')">% 2 KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_3ktc')">% 3 KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'pct_4plus_ktc')">% 4+ KTC <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_xuat_bclay_nhap_ktc1')">LT BC→KTC1 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_ktc1_ktc2')">LT KTC1→2 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_ktc2_ktc3')">LT KTC2→3 <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable" onclick="sortData('route', 'lt_ktc_cuoi_nhap_bcgiao')">LT KTC Cuối→BC Giao <i class="fa-solid fa-sort"></i></th>
+                                <th>Mạng Lưới KTC Phụ Trách</th>
                             </tr>
                         </thead>
                         <tbody id="route-tbody">
-                            <tr><td colspan="7" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>
+                            <tr><td colspan="15" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- STEP 3: SHOP DEEP DIVE -->
+            <!-- STEP 3: SHOP DEEP DIVE WITH TREND CHART -->
             <section class="step-section glass-panel disabled-step" id="section-step3">
                 <div class="section-title-bar">
                     <div class="step-num">3</div>
                     <div class="step-title-text">
                         <h3>BƯỚC 3: Đối Soát Shop Tại <span id="shop-prov-label" class="label-highlight">Chưa Chọn</span> Có Đơn Gửi Đến <span id="shop-dest-label" class="label-highlight">Chưa Chọn</span></h3>
-                        <p>Định vị chính xác các shop có chỉ số hoạt động thấp (ODR thấp) đang gửi đơn hàng lượng nhiều nhất vào tỉnh giao gặp sự cố để đưa ra giải pháp xử lý.</p>
+                        <p>Định vị shop sản lượng cao gửi đi tỉnh giao top đang có hiệu suất ODR/OPR kém.</p>
                     </div>
                 </div>
 
-                <div class="table-scroll-container limit-shop">
-                    <table class="data-table" id="shop-table">
-                        <thead>
-                            <tr>
-                                <th class="sortable" onclick="sortData('shop', 'ten_kh')">Tên Doanh Nghiệp (Shop) <i class="fa-solid fa-sort"></i></th>
-                                <th>Bưu Cục Gửi (Mã Kho)</th>
-                                <th>Quận / Huyện Lấy</th>
-                                <th class="sortable" onclick="sortData('shop', 'tong_vol')">Tổng Sản Lượng Gửi <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('shop', 'vol_tb_ngay')">Vol TB/Ngày <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('shop', 'kl_tb_ngay_top_tinh_giao')">Khối Lượng Gửi Đi Tỉnh Giao Top (Kg/Ngày) <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('shop', 'pct_odr')">% Giao Đúng Hạn (ODR Shop) <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable" onclick="sortData('shop', 'pct_opr')">% Pick Thành Công (OPR Shop) <i class="fa-solid fa-sort"></i></th>
-                                <th>Tỉnh Nhận Nhiều Nhất</th>
-                                <th>% KL Đi Tỉnh Nhận Top</th>
-                            </tr>
-                        </thead>
-                        <tbody id="shop-tbody">
-                            <tr><td colspan="10" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>
-                        </tbody>
-                    </table>
+                <!-- Combined Grid: Trend Chart & Shops Table -->
+                <div class="step3-grid">
+                    <!-- Trend Chart Box -->
+                    <div class="trend-chart-box glass-panel">
+                        <h4><i class="fa-solid fa-chart-line"></i> Xu Hướng Vận Hành Tuyến 3 Tháng Qua</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="routeTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Shops Table Box -->
+                    <div class="shops-table-box">
+                        <div class="table-scroll-container limit-shop">
+                            <table class="data-table" id="shop-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tên Khách Hàng (Shop)</th>
+                                        <th>Mã Kho Gửi</th>
+                                        <th>Tên Kho Gửi</th>
+                                        <th>Vùng Lấy</th>
+                                        <th>Tỉnh Lấy</th>
+                                        <th>Quận/Huyện</th>
+                                        <th class="sortable" onclick="sortData('shop', 'tong_vol')">Tổng Vol <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'tong_kl')">Tổng KL (Kg) <i class="fa-solid fa-sort"></i></th>
+                                        <th>Số Ngày Hoạt Động</th>
+                                        <th class="sortable" onclick="sortData('shop', 'vol_tb_ngay')">Vol TB/Ngày <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'kl_tb_ngay')">KL TB/Ngày <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_tren_5kg')">% Đơn > 5Kg <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_opr')">% OPR Shop <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_rot_lc')">% Tuyến LC <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_odr')">% ODR Shop <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" onclick="sortData('shop', 'pct_longtail')">% Longtail Shop <i class="fa-solid fa-sort"></i></th>
+                                        <th>Tỉnh Nhận Nhiều Nhất</th>
+                                        <th>KL Tỉnh Nhận Top (Kg)</th>
+                                        <th>% KL Tỉnh Giao Top</th>
+                                        <th class="sortable" onclick="sortData('shop', 'kl_tb_ngay_top_tinh_giao')">KL TB/Ngày Gửi Top <i class="fa-solid fa-sort"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shop-tbody">
+                                    <tr><td colspan="20" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>

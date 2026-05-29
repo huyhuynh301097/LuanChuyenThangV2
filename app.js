@@ -19,6 +19,9 @@ let selectedMonth = "";
 let selectedProv = "";
 let selectedRoute = "";
 
+// Chart Instance
+let trendChartInstance = null;
+
 // Sorting States
 let sortState = {
     prov: { key: 'vol', asc: false },
@@ -71,7 +74,7 @@ function parseCSVLine(line) {
     return arr;
 }
 
-// Formatters
+// Helpers
 function formatNum(val) {
     if (!val) return "0";
     let n = parseFloat(val.toString().replace(/,/g, ''));
@@ -105,6 +108,15 @@ function normalizeProv(p) {
         .replace(/hồ chí minh/gi, 'hcm')
         .replace(/hà nội/gi, 'hn')
         .trim();
+}
+
+function getFloatVal(val) {
+    if (!val) return 0;
+    let v = val.toString().replace(/%/g, '').replace(/,/g, '');
+    let f = parseFloat(v);
+    if (isNaN(f)) return 0;
+    if (f <= 1.0) return f * 100;
+    return f;
 }
 
 // Fetch DB
@@ -149,7 +161,7 @@ async function loadAllData() {
 
     } catch (err) {
         console.error("Lỗi đồng bộ DB:", err);
-        statusText.innerText = "Đồng bộ Google Sheets thất bại! Vui lòng kiểm tra lại đường truyền mạng.";
+        statusText.innerText = "Đồng bộ Google Sheets thất bại! Vui lòng kiểm tra lại mạng.";
         statusText.style.color = "var(--danger-color)";
     }
 }
@@ -159,7 +171,6 @@ function reloadAllData() {
 }
 
 function initApp() {
-    // Điền bộ lọc tháng
     let months = [...new Set(dbData.prov.map(d => d.thang))].filter(Boolean).sort().reverse();
     let monthSelect = document.getElementById('filter-month');
     monthSelect.innerHTML = '';
@@ -182,7 +193,6 @@ function resetSelections() {
     selectedProv = "";
     selectedRoute = "";
     
-    // Disable steps 2 & 3
     document.getElementById('section-step2').classList.add('disabled-step');
     document.getElementById('section-step3').classList.add('disabled-step');
     
@@ -190,8 +200,13 @@ function resetSelections() {
     document.getElementById('shop-prov-label').innerText = "Chưa Chọn";
     document.getElementById('shop-dest-label').innerText = "Chưa Chọn";
 
-    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="7" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
-    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="10" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    document.getElementById('route-tbody').innerHTML = `<tr><td colspan="15" class="placeholder-text">Vui lòng nhấp chọn một Tỉnh Lấy ở Bước 1 để hiển thị tuyến kết nối.</td></tr>`;
+    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="20" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    
+    if (trendChartInstance) {
+        trendChartInstance.destroy();
+        trendChartInstance = null;
+    }
 }
 
 function sortData(tabName, key) {
@@ -221,29 +236,22 @@ function getSortedArr(arr, key, asc) {
     });
 }
 
-// Helper to color codes
 function getODRClass(val) {
-    let p = parseFloat(val);
-    if (isNaN(p)) return '';
-    if (p <= 1.0) p = p * 100;
+    let p = getFloatVal(val);
     if (p < 88.0) return 'hl-cell-red';
     if (p < 92.0) return 'hl-cell-yellow';
     return 'hl-cell-green';
 }
 
 function getLongtailClass(val) {
-    let p = parseFloat(val);
-    if (isNaN(p)) return '';
-    if (p <= 1.0) p = p * 100;
+    let p = getFloatVal(val);
     if (p > 18.0) return 'hl-cell-red';
     if (p > 15.0) return 'hl-cell-yellow';
     return 'hl-cell-green';
 }
 
 function getOPRClass(val) {
-    let p = parseFloat(val);
-    if (isNaN(p)) return '';
-    if (p <= 1.0) p = p * 100;
+    let p = getFloatVal(val);
     if (p < 70.0) return 'hl-cell-red';
     if (p < 85.0) return 'hl-cell-yellow';
     return 'hl-cell-green';
@@ -278,7 +286,6 @@ function selectProvince(provName) {
     selectedProv = provName;
     selectedRoute = "";
     
-    // Khởi chạy bước 2
     document.getElementById('section-step2').classList.remove('disabled-step');
     document.getElementById('section-step3').classList.add('disabled-step');
     
@@ -286,24 +293,34 @@ function selectProvince(provName) {
     document.getElementById('shop-prov-label').innerText = provName;
     document.getElementById('shop-dest-label').innerText = "Chưa Chọn";
 
-    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="10" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    document.getElementById('shop-tbody').innerHTML = `<tr><td colspan="20" class="placeholder-text">Vui lòng nhấp chọn một Tuyến Vận Chuyển ở Bước 2 để đối soát danh sách shop.</td></tr>`;
+    
+    if (trendChartInstance) {
+        trendChartInstance.destroy();
+        trendChartInstance = null;
+    }
 
-    renderStep1(); // Để highlight row được chọn ở bước 1
+    renderStep1();
     renderStep2();
 }
 
 // ==================== BƯỚC 2: RENDER TUYẾN GIAO ====================
 function renderStep2() {
-    // Lọc tuyến bắt đầu bằng Tỉnh Lấy được chọn
     let matchedRoutes = dbData.route.filter(r => r.thang === selectedMonth && r.tuyen.startsWith(selectedProv + " - "));
     
-    // JOIN với dữ liệu Leadtime
     let joined = matchedRoutes.map(r => {
         let ltInfo = dbData.lt.find(l => l.thang === selectedMonth && l.tuyen === r.tuyen);
         return {
             ...r,
-            lt_tong: ltInfo ? ltInfo.lt_tong : r.Leadtine, // Dùng Leadtime tổng từ sheet lt hoặc Leadtine
-            pct_longtail: r.pct_longtail // Sử dụng longtail từ sheet chi_so_tuyen
+            lt_tong: ltInfo ? ltInfo.lt_tong : r.Leadtine,
+            pct_1ktc: ltInfo ? ltInfo.pct_1ktc : "",
+            pct_2ktc: ltInfo ? ltInfo.pct_2ktc : "",
+            pct_3ktc: ltInfo ? ltInfo.pct_3ktc : "",
+            pct_4plus_ktc: ltInfo ? ltInfo.pct_4plus_ktc : "",
+            lt_xuat_bclay_nhap_ktc1: ltInfo ? ltInfo.lt_xuat_bclay_nhap_ktc1 : "",
+            lt_ktc1_ktc2: ltInfo ? ltInfo.lt_ktc1_ktc2 : "",
+            lt_ktc2_ktc3: ltInfo ? ltInfo.lt_ktc2_ktc3 : "",
+            lt_ktc_cuoi_nhap_bcgiao: ltInfo ? ltInfo.lt_ktc_cuoi_nhap_bcgiao : ""
         };
     });
 
@@ -313,7 +330,7 @@ function renderStep2() {
     tbody.innerHTML = '';
 
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="placeholder-text">Không có tuyến gửi nào xuất phát từ ${selectedProv} trong tháng ${selectedMonth}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="15" class="placeholder-text">Không có tuyến gửi nào xuất phát từ ${selectedProv} trong tháng ${selectedMonth}.</td></tr>`;
         return;
     }
 
@@ -327,6 +344,14 @@ function renderStep2() {
                 <td class="${getODRClass(r.pct_odr)}">${formatPercent(r.pct_odr)}</td>
                 <td class="${getLongtailClass(r.pct_longtail)}">${formatPercent(r.pct_longtail)}</td>
                 <td style="font-weight: 700; color: #10b981;">${formatHours(r.lt_tong)}</td>
+                <td>${formatPercent(r.pct_1ktc)}</td>
+                <td>${formatPercent(r.pct_2ktc)}</td>
+                <td>${formatPercent(r.pct_3ktc)}</td>
+                <td>${formatPercent(r.pct_4plus_ktc)}</td>
+                <td>${formatHours(r.lt_xuat_bclay_nhap_ktc1)}</td>
+                <td>${formatHours(r.lt_ktc1_ktc2)}</td>
+                <td>${formatHours(r.lt_ktc2_ktc3)}</td>
+                <td>${formatHours(r.lt_ktc_cuoi_nhap_bcgiao)}</td>
                 <td style="font-size: 0.82rem; color: var(--text-muted);">${r["KTC/KCT lấy"] || "--"} → ${r["KTC/KCT giao"] || "--"}</td>
             </tr>
         `;
@@ -335,41 +360,34 @@ function renderStep2() {
 
 function selectRoute(routeName) {
     selectedRoute = routeName;
-
-    // Kích hoạt Bước 3
     document.getElementById('section-step3').classList.remove('disabled-step');
     
     let destProv = routeName.split(" - ")[1];
     document.getElementById('shop-dest-label').innerText = destProv;
 
-    renderStep2(); // Highlight row ở bước 2
+    renderStep2();
     renderStep3();
+    buildTrendChart(routeName);
 }
 
-// ==================== BƯỚC 3: RENDER SHOP TRỌNG ĐIỂM ====================
+// ==================== BƯỚC 3: RENDER SHOP & TREND CHART ====================
 function renderStep3() {
     let destProv = selectedRoute.split(" - ")[1];
     let normalizedDest = normalizeProv(destProv);
 
-    // Lọc shop:
-    // 1. Thuộc tỉnh lấy được chọn
-    // 2. Có Tỉnh giao nhiều nhất (top_tinh_giao) tương ứng với tỉnh giao của tuyến bị lỗi
     let filteredShops = dbData.shop.filter(s => {
         let matchProv = s.tinh_lay === selectedProv;
         let normalizedShopTop = normalizeProv(s.top_tinh_giao);
-        
-        // Khớp mờ để Hồ Chí Minh và TP Hồ Chí Minh khớp nhau
         let matchDest = normalizedShopTop.includes(normalizedDest) || normalizedDest.includes(normalizedShopTop);
         return matchProv && matchDest;
     });
 
     let sorted = getSortedArr(filteredShops, sortState.shop.key, sortState.shop.asc);
-
     const tbody = document.getElementById('shop-tbody');
     tbody.innerHTML = '';
 
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="placeholder-text">Không có shop nào tại ${selectedProv} gửi đơn nhiều nhất đi ${destProv} trong cơ sở dữ liệu.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="20" class="placeholder-text">Không có shop nào tại ${selectedProv} gửi đơn nhiều nhất đi ${destProv} trong cơ sở dữ liệu.</td></tr>`;
         return;
     }
 
@@ -377,16 +395,135 @@ function renderStep3() {
         tbody.innerHTML += `
             <tr>
                 <td style="font-weight: 600; color: #f8fafc;">${s.ten_kh}</td>
-                <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name} (ID: ${s.pickwarehouseid})</td>
+                <td>${s.pickwarehouseid}</td>
+                <td style="font-size: 0.82rem; color: var(--text-muted);">${s.warehouse_name}</td>
+                <td>${s.vung}</td>
+                <td>${s.tinh_lay}</td>
                 <td>${s.quan}</td>
                 <td style="font-weight: 600;">${formatNum(s.tong_vol)}</td>
-                <td style="color: #60a5fa;">${formatNum(s.vol_tb_ngay)}</td>
-                <td style="font-weight: 600; color: #fbbf24;">${formatNum(s.kl_tb_ngay_top_tinh_giao)} kg/ngày</td>
-                <td class="${getODRClass(s.pct_odr)}">${formatPercent(s.pct_odr)}</td>
+                <td>${formatNum(s.tong_kl)}</td>
+                <td>${s.so_ngay}</td>
+                <td style="color: #60a5fa; font-weight: 600;">${formatNum(s.vol_tb_ngay)}</td>
+                <td>${formatNum(s.kl_tb_ngay)}</td>
+                <td>${s.pct_tren_5kg}</td>
                 <td class="${getOPRClass(s.pct_opr)}">${formatPercent(s.pct_opr)}</td>
+                <td>${formatPercent(s.pct_rot_lc)}</td>
+                <td class="${getODRClass(s.pct_odr)}">${formatPercent(s.pct_odr)}</td>
+                <td class="${getLongtailClass(s.pct_longtail)}">${formatPercent(s.pct_longtail)}</td>
                 <td style="font-weight: 600;">${s.top_tinh_giao}</td>
+                <td>${formatNum(s.kl_top_tinh_giao)}</td>
                 <td>${formatPercent(s.pct_kl_top_tinh_giao)}</td>
+                <td style="font-weight: 600; color: #fbbf24;">${formatNum(s.kl_tb_ngay_top_tinh_giao)} kg/ngày</td>
             </tr>
         `;
+    });
+}
+
+function buildTrendChart(routeName) {
+    // Truy vấn dữ liệu 3 tháng từ DB (March, April, May)
+    let marData = dbData.route.find(r => r.thang === "2026-03" && r.tuyen === routeName);
+    let aprData = dbData.route.find(r => r.thang === "2026-04" && r.tuyen === routeName);
+    let mayData = dbData.route.find(r => r.thang === "2026-05" && r.tuyen === routeName);
+
+    let marLt = dbData.lt.find(l => l.thang === "2026-03" && l.tuyen === routeName);
+    let aprLt = dbData.lt.find(l => l.thang === "2026-04" && l.tuyen === routeName);
+    let mayLt = dbData.lt.find(l => l.thang === "2026-05" && l.tuyen === routeName);
+
+    let odrs = [
+        marData ? getFloatVal(marData.pct_odr) : 0,
+        aprData ? getFloatVal(aprData.pct_odr) : 0,
+        mayData ? getFloatVal(mayData.pct_odr) : 0
+    ];
+    let leadtimes = [
+        marLt ? parseFloat(marLt.lt_tong) : (marData ? parseFloat(marData.Leadtine) : 0),
+        aprLt ? parseFloat(aprLt.lt_tong) : (aprData ? parseFloat(aprData.Leadtine) : 0),
+        mayLt ? parseFloat(mayLt.lt_tong) : (mayData ? parseFloat(mayData.Leadtine) : 0)
+    ];
+    let longtails = [
+        marData ? getFloatVal(marData.pct_longtail) : 0,
+        aprData ? getFloatVal(aprData.pct_longtail) : 0,
+        mayData ? getFloatVal(mayData.pct_longtail) : 0
+    ];
+
+    const ctx = document.getElementById('routeTrendChart').getContext('2d');
+    
+    if (trendChartInstance) {
+        trendChartInstance.destroy();
+    }
+
+    trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ["Tháng 3", "Tháng 4", "Tháng 5"],
+            datasets: [
+                {
+                    label: 'ODR (%)',
+                    data: odrs,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    borderWidth: 3,
+                    pointRadius: 5
+                },
+                {
+                    label: 'Longtail (%)',
+                    data: longtails,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 4
+                },
+                {
+                    label: 'Leadtime (h)',
+                    data: leadtimes,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    yAxisID: 'y2',
+                    tension: 0.3,
+                    borderWidth: 3,
+                    pointRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y1: {
+                    type: 'linear',
+                    position: 'left',
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        color: '#64748b',
+                        callback: function(value) { return value + "%"; }
+                    },
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                },
+                y2: {
+                    type: 'linear',
+                    position: 'right',
+                    min: 0,
+                    ticks: {
+                        color: '#64748b',
+                        callback: function(value) { return value + "h"; }
+                    },
+                    grid: { drawOnChartArea: false }
+                },
+                x: {
+                    ticks: { color: '#64748b' },
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: { color: '#f8fafc', font: { size: 10 } }
+                }
+            }
+        }
     });
 }
