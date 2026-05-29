@@ -1248,6 +1248,7 @@ function calculateConsolidation(routeName) {
         let normalizedTop = normalizeProv(s.top_tinh_giao);
         let shopRouteData = dbData.route.find(r => {
             if (r.thang !== selectedMonth) return false;
+            if (!r.tuyen) return false;
             let parts = r.tuyen.split(" - ");
             if (parts.length < 2) return false;
             return parts[0] === selectedProv && normalizeProv(parts[1]) === normalizedTop;
